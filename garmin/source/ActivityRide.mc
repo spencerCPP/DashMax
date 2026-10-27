@@ -6,6 +6,8 @@ class ActivityRide {
     var heartRate = null;
     var averageHeartRate = null;
     var cadence = null;
+    // Explicit replay workaround only; ordinary activity data uses divisor 1.
+    var cadenceDivisor = 1;
     var speedKmh = null;
     var averageSpeedKmh = null;
     var distanceKm = null;
@@ -26,7 +28,9 @@ class ActivityRide {
         heartRate = info has :currentHeartRate ? info.currentHeartRate : null;
         averageHeartRate =
             info has :averageHeartRate ? info.averageHeartRate : null;
-        cadence = info has :currentCadence ? info.currentCadence : null;
+        var rawCadence = info has :currentCadence ? info.currentCadence : null;
+        cadence =
+            rawCadence == null ? null : rawCadence / (cadenceDivisor * 1.0);
         var speed = info has :currentSpeed ? info.currentSpeed : null;
         var averageSpeed = info has :averageSpeed ? info.averageSpeed : null;
         var distance = info has :elapsedDistance ? info.elapsedDistance : null;

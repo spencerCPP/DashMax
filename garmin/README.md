@@ -46,6 +46,18 @@ The wind dot marks the **source** of ambient wind relative to forward travel (th
 
 Use an **activity recording**, not a route/course or structured-workout FIT file. The file stays on your computer; there is no web upload or server processing. Export the original activity from Garmin Connect and unzip it if the export arrives as a ZIP. Missing power/HR/cadence channels cannot be reconstructed and display `--`; zero cadence/power is kept as a real zero. Simulator sample-rate and channel support depend on the FIT file and SDK.
 
+### Cadence doubled during simulator playback
+
+A decoded user-provided cycling recording confirmed that the simulator supplied doubled cadence in the reported run. At the matching sample, FIT cadence is **86 rpm**, HR **148 bpm**, speed **23.2 km/h**, distance **111.02 m**, and three-second power **59 W**; the screenshot matches those channels but displays **172 rpm**. The recording passes FIT integrity checks and has a maximum cadence of **129 rpm**. DashMax's ordinary activity adapter passes cadence through unchanged. This establishes a playback discrepancy, but not its exact cause inside the simulator; activity/sport interpretation remains a possibility. Single-sided power measurement does not require doubling cycling cadence.
+
+For that observed simulator behavior, launch with an explicit correction:
+
+```sh
+npm run garmin:fit -- --cadence-divisor=2
+```
+
+The terminal must report **Replay cadence divisor: 2**. This divides only cadence in the generated FIT build; it leaves the FIT file and power unchanged. Use it only when a recording comparison confirms the simulator is doubling cadence. Normal `npm run garmin:fit` uses divisor **1** and preserves the supplied value, including high cadence readings. If simulator settings or a future SDK resolve the doubling, return to divisor 1. Native regression tests cover unchanged normal/high cadence, the explicit 172→86 and 192→96 corrections, zero, and missing values. Native execution of this new correction still requires local SDK validation.
+
 Current power is a sample mean of available readings in the trailing three activity seconds (a shorter window during startup); samples with missing current power display `--` and create a gap. The graph contains the last 90 accepted updates, approximately 90 seconds at normal 1 Hz playback; it uses a fixed 0–450 W range and clips higher graph points without clamping the hero number. Speed is converted from Garmin's m/s to km/h or mph, distance from metres to km or mi, and elapsed time from milliseconds. Whole-activity averages come only from Garmin's `Activity.Info` average fields, not lap fields or hardcoded demo values. They may be unavailable or reflect the simulator's accumulated playback rather than the FIT file's saved session summary. Elapsed time/distance are the simulated host activity's values, which can differ from the FIT summary after pauses or seeking.
 
 **Wind displays NO DATA in activity mode.** No weather source is configured, and FIT playback is not treated as an ambient wind measurement. FIT playback verifies the data path and rendering, not real-device sensor integration or recording behavior.
@@ -56,7 +68,7 @@ Current power is a sample mean of available readings in the trailing three activ
 npm run garmin:test
 ```
 
-This builds a separate `garmin/bin/DashMax-tests.prg` with the SDK's test flag and runs the five `(:test)` functions in Garmin's simulator. Check that the Garmin runner reports **five passed tests**: wind math, formatting, activity unit conversion/missing values, three-second power smoothing, and playback seek/gap resets. An empty or skipped run is not a pass. Inspect compiler output, simulator console, and memory usage before calling this native target ready.
+This builds a separate `garmin/bin/DashMax-tests.prg` with the SDK's test flag and runs the six `(:test)` functions in Garmin's simulator. Check that the Garmin runner reports **six passed tests**: wind math, formatting, activity unit conversion/missing values, three-second power smoothing, playback seek/gap resets, and explicit replay cadence correction. An empty or skipped run is not a pass. Inspect compiler output, simulator console, and memory usage before calling this native target ready.
 
 For manual acceptance checks, set animation off and test each ride length in both themes and both unit systems. Inspect the actual field rectangle at native resolution for clipped units, overlapping averages, and long elapsed times. Exercise all wind scenarios and missing/stopped sensor states. Re-enable animation and confirm the graph advances approximately once per second without errors. Built-in device fonts differ from the web font; final typography needs simulator/device review.
 

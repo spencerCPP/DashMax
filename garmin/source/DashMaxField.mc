@@ -24,7 +24,7 @@ class DashMaxField extends WatchUi.DataField {
 
     function initialize() {
         DataField.initialize();
-        _ride = new ActivityRide();
+        _ride = createRide();
         _history = new [90];
         for (var i = 0; i < 90; i += 1) {
             _history[i] = DashMath.mockPower(i - 89);
@@ -40,6 +40,12 @@ class DashMaxField extends WatchUi.DataField {
         ];
     }
 
+    function createRide() {
+        var ride = new ActivityRide();
+        ride.cadenceDivisor = BuildMode.CADENCE_DIVISOR;
+        return ride;
+    }
+
     function setting(name) {
         return Application.Properties.getValue(name);
     }
@@ -53,7 +59,7 @@ class DashMaxField extends WatchUi.DataField {
         var activity = activityMode();
         if (activity != _activity) {
             _activity = activity;
-            _ride = new ActivityRide();
+            _ride = createRide();
             _lastTime = null;
             _head = 0;
             for (var i = 0; i < 90; i += 1) {

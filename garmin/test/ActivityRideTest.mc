@@ -81,3 +81,30 @@ function testPlaybackSeekResetsWindow(logger) {
     Test.assert(DashMath.absolute(ride.power - 200.0) < 0.001);
     return true;
 }
+
+(:test)
+function testExplicitReplayCadenceCorrection(logger) {
+    var ride = new ActivityRide();
+    var info = new PlaybackTestInfo();
+    info.elapsedTime = 1000;
+    info.currentCadence = 86;
+    ride.update(info, 0);
+    Test.assertEqual(ride.cadence, 86.0);
+    // Even unusually high cadence is preserved in ordinary activity mode.
+    info.currentCadence = 172;
+    ride.update(info, 0);
+    Test.assertEqual(ride.cadence, 172.0);
+    ride.cadenceDivisor = 2;
+    ride.update(info, 0);
+    Test.assertEqual(ride.cadence, 86.0);
+    info.currentCadence = 192;
+    ride.update(info, 0);
+    Test.assertEqual(ride.cadence, 96.0);
+    info.currentCadence = 0;
+    ride.update(info, 0);
+    Test.assertEqual(ride.cadence, 0.0);
+    info.currentCadence = null;
+    ride.update(info, 0);
+    Test.assertEqual(ride.cadence, null);
+    return true;
+}

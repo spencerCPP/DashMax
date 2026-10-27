@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync, spawn } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import net from 'node:net';
-import { prepareBuildProject } from './garmin-project.mjs';
+import { prepareBuildProject, cadenceDivisorFor } from './garmin-project.mjs';
 
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'garmin');
 const windows = process.platform === 'win32';
@@ -50,7 +50,7 @@ function checkSdk() {
   console.log(`SDK: ${sdk}\nTarget: edge840\nProject: ${project}`);
 }
 
-function build(tests, activityData = false) {
+function build(tests, activityData = false, cadenceDivisor = 1) {
   const key = process.env.CIQ_DEVELOPER_KEY || path.join(project, '.keys', 'developer_key.der');
   if (!existsSync(key)) {
     if (process.env.CIQ_DEVELOPER_KEY) throw new Error('CIQ_DEVELOPER_KEY points to a missing file.');
@@ -65,8 +65,9 @@ function build(tests, activityData = false) {
   }
   mkdirSync(path.join(project, 'bin'), { recursive: true });
   const program = path.join(project, 'bin', tests ? 'DashMax-tests.prg' : activityData ? 'DashMax-fit.prg' : 'DashMax.prg');
-  const buildProject = prepareBuildProject(project, activityData);
+  const buildProject = prepareBuildProject(project, activityData, cadenceDivisor);
   console.log(activityData ? 'Data source: ACTIVITY / FIT PLAYBACK (forced)' : 'Data source: app properties (mock by default)');
+  if (activityData) console.log(`Replay cadence divisor: ${cadenceDivisor}`);
   // Use the SDK Java compiler directly; avoids Windows .bat quoting for builds.
   run('java', ['-Dfile.encoding=UTF-8', '-jar', path.join(sdk, 'bin', 'monkeybrains.jar'),
     '-f', 'monkey.jungle', '-d', 'edge840', '-y', key, '-o', program, ...(tests ? ['-t'] : [])], buildProject);
@@ -106,10 +107,11 @@ async function launchSimulator() {
 
 try {
   if (!['doctor', 'build', 'sim', 'fit', 'test'].includes(action)) throw new Error('Usage: node scripts/garmin.mjs doctor|build|sim|fit|test');
+  const cadenceDivisor = cadenceDivisorFor(action, process.argv.slice(3));
   checkSdk();
   if (action !== 'doctor') {
     const tests = action === 'test';
-    const program = build(tests, action === 'fit');
+    const program = build(tests, action === 'fit', cadenceDivisor);
     if (action === 'sim' || action === 'fit' || tests) {
       await launchSimulator();
       run(path.join(sdk, 'bin', windows ? 'monkeydo.bat' : 'monkeydo'),

@@ -1,7 +1,16 @@
 import { cpSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-export function prepareBuildProject(project, activityData) {
+export function cadenceDivisorFor(action, args) {
+  if (!args.length) return 1;
+  if (action !== 'fit' || args.length !== 1 || !/^--cadence-divisor=[12]$/.test(args[0])) {
+    throw new Error('Only garmin:fit accepts --cadence-divisor=1 or --cadence-divisor=2.');
+  }
+  return Number(args[0].split('=')[1]);
+}
+
+export function prepareBuildProject(project, activityData, cadenceDivisor = 1) {
+  if (![1, 2].includes(cadenceDivisor)) throw new Error('Cadence divisor must be 1 or 2.');
   if (!activityData) return project;
   const destination = path.join(project, 'bin', 'fit-project');
   mkdirSync(destination, { recursive: true });
@@ -11,6 +20,6 @@ export function prepareBuildProject(project, activityData) {
   }
   // Force the data source regardless of any previously saved simulator settings.
   writeFileSync(path.join(destination, 'source', 'BuildMode.mc'),
-    'module BuildMode {\n    const ACTIVITY_DATA = true;\n}\n');
+    `module BuildMode {\n    const ACTIVITY_DATA = true;\n    const CADENCE_DIVISOR = ${cadenceDivisor};\n}\n`);
   return destination;
 }
