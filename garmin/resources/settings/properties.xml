@@ -1,0 +1,8 @@
+<properties>
+  <property id="Dark" type="boolean">false</property>
+  <property id="Imperial" type="boolean">false</property>
+  <property id="Animate" type="boolean">true</property>
+  <property id="WindScenario" type="number">0</property>
+  <property id="RideScenario" type="number">0</property>
+  <property id="SensorState" type="number">0</property>
+</properties>

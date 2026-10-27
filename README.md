@@ -21,6 +21,10 @@ The wind source dot marks where ambient wind **comes from** around a fixed forwa
 
 Distance and time use measured canvas text widths and resize when fonts finish loading. Distance drops its decimal when rounded displayed distance reaches 1000 units. Controls cover 9.7 through 1000 km, a 1000-mile equivalent, and elapsed times through 24 hours. Inspect at **1:1** to judge device-scale readability. All values and live data are mocked; telemetry is not recorded.
 
-## Eventual Connect IQ port
+## Garmin Edge 840 simulator
 
-Metric hierarchy, wind math, bounded power history, number formatting, and custom drawing concepts can be ported to Monkey C. This web layout is not a Garmin package. Edge 840 data-field metrics, weather access, refresh cadence, memory limits, font packaging, color rendering, and native recording coexistence still need validation against the current SDK, simulator, and hardware. No access to ClimbPro, native navigation, or training readiness is assumed.
+A native Monkey C data-field demo now lives in [`garmin/`](garmin/README.md). See that guide for SDK installation, `npm run garmin:doctor`, `npm run garmin:sim`, and native tests. This target uses mock data and built-in Garmin fonts. Native compilation and simulator execution are not yet verified because the cloud environment blocks Garmin SDK downloads.
+
+## Connect IQ production port
+
+Metric hierarchy, wind math, bounded power history, number formatting, and custom drawing concepts can be ported to Monkey C. The web layout is not a Garmin package; the separate native simulator demo is not yet a production sensor-integrated field. Edge 840 data-field metrics, weather access, refresh cadence, memory limits, font packaging, color rendering, and native recording coexistence still need validation against the current SDK, simulator, and hardware. No access to ClimbPro, native navigation, or training readiness is assumed.

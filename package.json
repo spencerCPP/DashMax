@@ -1,1 +1,28 @@
-{"name":"dashmax","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"vite --host 0.0.0.0","build":"tsc --noEmit && vite build","test":"node --experimental-strip-types --test src/domain.test.ts","preview":"vite preview --host 0.0.0.0"},"dependencies":{"@fontsource/barlow-condensed":"^5.3.0","@fontsource/dm-sans":"^5.3.0","react":"19.3.1","react-dom":"19.3.1"},"devDependencies":{"@types/react":"19.3.0","@types/react-dom":"19.3.0","typescript":"5.9.3","vite":"8.3.5"}}
+{
+  "name": "dashmax",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "test": "node --experimental-strip-types --test src/domain.test.ts",
+    "preview": "vite preview --host 0.0.0.0",
+    "garmin:doctor": "node scripts/garmin.mjs doctor",
+    "garmin:build": "node scripts/garmin.mjs build",
+    "garmin:sim": "node scripts/garmin.mjs sim",
+    "garmin:test": "node scripts/garmin.mjs test"
+  },
+  "dependencies": {
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource/dm-sans": "^5.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "5.9.3",
+    "vite": "8.3.5"
+  }
+}

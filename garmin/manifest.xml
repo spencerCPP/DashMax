@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+  <iq:application id="67c2f68a95354b91ba2cac5f68d56c8b" type="datafield" name="@Strings.AppName" entry="DashMaxApp" launcherIcon="@Drawables.LauncherIcon" minSdkVersion="3.2.0" version="0.2.0">
+    <iq:products><iq:product id="edge840"/></iq:products>
+    <iq:permissions/>
+    <iq:languages><iq:language>eng</iq:language></iq:languages>
+    <iq:barrels/>
+  </iq:application>
+</iq:manifest>
