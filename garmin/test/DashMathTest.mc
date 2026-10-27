@@ -1,15 +1,17 @@
-using Toybox.Math;
 using Toybox.Test;
 
 (:test)
 function testWindDirections(logger) {
+    Test.assertEqual(DashMath.absolute(-12), 12);
+    Test.assertEqual(DashMath.absolute(12), 12);
+    Test.assertEqual(DashMath.absolute(0), 0);
     Test.assertEqual(DashMath.relativeFrom(359, 1), 2);
     Test.assertEqual(DashMath.relativeFrom(90, 0), -90);
     Test.assertEqual(DashMath.relativeFrom(270, 0), 90);
-    Test.assert(Math.abs(DashMath.component(0, 12) - 12) < 0.001);
-    Test.assert(Math.abs(DashMath.component(180, 12) + 12) < 0.001);
-    Test.assert(Math.abs(DashMath.component(90, 12)) < 0.001);
-    Test.assert(Math.abs(DashMath.component(48.19, 12) - 8) < 0.01);
+    Test.assert(DashMath.absolute(DashMath.component(0, 12) - 12) < 0.001);
+    Test.assert(DashMath.absolute(DashMath.component(180, 12) + 12) < 0.001);
+    Test.assert(DashMath.absolute(DashMath.component(90, 12)) < 0.001);
+    Test.assert(DashMath.absolute(DashMath.component(48.19, 12) - 8) < 0.01);
     return true;
 }
 

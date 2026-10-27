@@ -281,8 +281,10 @@ class DashMaxField extends WatchUi.DataField {
             false
         );
         label(dc, imperial ? "mph" : "km/h", 65, 289, 28, false);
-        var direction = Math.abs(c) < 0.1 ? "CROSS" : c > 0 ? "HEAD" : "TAIL";
-        var magnitude = Math.abs(c).format("%.0f");
+        var absoluteComponent = DashMath.absolute(c);
+        var direction =
+            absoluteComponent < 0.1 ? "CROSS" : c > 0 ? "HEAD" : "TAIL";
+        var magnitude = absoluteComponent.format("%.0f");
         label(
             dc,
             direction == "CROSS" ? direction : magnitude + " " + direction,

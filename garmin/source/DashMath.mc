@@ -1,6 +1,11 @@
 using Toybox.Math;
 
 module DashMath {
+    // Toybox.Math has no abs() function on the Edge 840 runtime.
+    function absolute(value) {
+        return value < 0 ? -value : value;
+    }
+
     function relativeFrom(course, from) {
         return ((((from - course + 180) % 360) + 360) % 360) - 180;
     }
