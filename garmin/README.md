@@ -28,23 +28,19 @@ npm run garmin:sim
 
 Select a **single-field/full-page layout** in the simulator's **Data Fields** menu. This is necessary: Garmin controls the available data-field rectangle, so it can be smaller than the entire 246 × 322 physical display. DashMax adapts to that rectangle and asks for a full-page layout when it is too small. This is not a standalone replacement for Garmin's activity UI.
 
-Open **Settings → App Settings** in the simulator to change:
+For FIT playback, use `npm run garmin:fit` instead of `garmin:sim`. This builds a separate `DashMax-fit.prg` with activity-data mode forced on; it does not require any application-settings menu or editor. It does not change tracked source or your saved app properties. The generated build copy is ignored under `garmin/bin/fit-project`.
 
-- Light/dark theme and metric/imperial units.
-- Animated mock telemetry versus deterministic fixed readings.
-- Oblique/head/tail/left/right wind, stale wind, or unavailable wind.
-- Ordinary, 10-hour, 24-hour, 1000-km, and 1000-mile ride cases.
-- Connected, missing, or stopped sensor states.
+Other demo options are declared in `resources/settings/properties.xml` (theme, units, mock animation, wind/ride/sensor scenarios). The simulator's **Settings** menu controls the simulated device; it is not an application-properties editor in SDK 9.3. For a simple local demo configuration, stop the app, edit the defaults in that XML file, and rebuild with `garmin:sim`. Existing stored application properties can override changed defaults; do not rely on this method to force FIT playback. Use `garmin:fit` for that.
 
-Apply the settings. The data field refreshes from the host activity's compute/update cadence rather than starting a background timer. There is no device touchscreen configuration UI in this data-field demo.
+The data field refreshes from the host activity's compute/update cadence rather than starting a background timer. There is no device touchscreen configuration UI in this test field.
 
 The wind dot marks the **source** of ambient wind relative to forward travel (the fixed up arrow). Positive along-track projection is headwind; negative is tailwind. Wind speed and component share the chosen speed units. Mock wind is 12 mph (19.3 km/h); the default oblique component is about 8 mph (12.9 km/h). The power graph has a fixed 0–450 W scale and 90-sample circular buffer. All averages are whole-ride mock values. Paused state freezes the mock clock; the demo does not model Garmin recording semantics.
 
 ## Replay a real activity FIT file on macOS
 
-1. Pull the latest source and run `npm run garmin:sim` from the repository root.
+1. Pull the latest source and run `npm run garmin:fit` from the repository root. The terminal must report **Data source: ACTIVITY / FIT PLAYBACK (forced)**.
 2. Select the single-field/full-page layout from **Data Fields**.
-3. Open **Settings → App Settings**, enable **Use activity data (FIT playback / sensors)**, and apply/save. Mock wind, ride-length, sensor-state, and animation settings are ignored in this mode. Until activity data arrives, absent metrics display `--`.
+3. No application-settings step is needed. Mock wind, ride-length, sensor-state, and animation settings are ignored in this build. Until activity data arrives, absent metrics display `--`.
 4. In the Garmin simulator, choose **Simulation → FIT Data → Playback File…** and select a recorded cycling activity `.fit` file from your Mac. Start/resume playback using the FIT playback controls. Start the simulated activity timer if needed by your SDK's simulator.
 5. Confirm the values change with the recording. Use the simulator's FIT playback controls to stop/restart the recording. A backwards activity clock or a gap exceeding three seconds resets the power window and graph history.
 

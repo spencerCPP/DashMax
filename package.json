@@ -6,12 +6,13 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
-    "test": "node --experimental-strip-types --test src/domain.test.ts",
+    "test": "node --experimental-strip-types --test src/domain.test.ts scripts/garmin-project.test.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "garmin:doctor": "node scripts/garmin.mjs doctor",
     "garmin:build": "node scripts/garmin.mjs build",
     "garmin:sim": "node scripts/garmin.mjs sim",
-    "garmin:test": "node scripts/garmin.mjs test"
+    "garmin:test": "node scripts/garmin.mjs test",
+    "garmin:fit": "node scripts/garmin.mjs fit"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",

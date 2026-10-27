@@ -44,9 +44,13 @@ class DashMaxField extends WatchUi.DataField {
         return Application.Properties.getValue(name);
     }
 
+    function activityMode() {
+        return BuildMode.ACTIVITY_DATA || setting("ActivityData") == true;
+    }
+
     function compute(info) {
         var now = (System.getTimer() / 1000).toNumber();
-        var activity = setting("ActivityData") == true;
+        var activity = activityMode();
         if (activity != _activity) {
             _activity = activity;
             _ride = new ActivityRide();
@@ -140,7 +144,7 @@ class DashMaxField extends WatchUi.DataField {
         _height = dc.getHeight();
         var dark = setting("Dark");
         var imperial = setting("Imperial");
-        var activity = setting("ActivityData") == true;
+        var activity = activityMode();
         var missing = activity
             ? _ride.power == null
             : setting("SensorState") == 1;
@@ -344,8 +348,7 @@ class DashMaxField extends WatchUi.DataField {
     }
 
     function drawWind(dc, imperial) {
-        var scenario =
-            setting("ActivityData") == true ? 5 : setting("WindScenario");
+        var scenario = activityMode() ? 5 : setting("WindScenario");
         var relative = 48.19;
         if (scenario == 1) {
             relative = 0.0;
