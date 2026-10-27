@@ -1,4 +1,5 @@
 <properties>
+  <property id="ActivityData" type="boolean">false</property>
   <property id="Dark" type="boolean">false</property>
   <property id="Imperial" type="boolean">false</property>
   <property id="Animate" type="boolean">true</property>

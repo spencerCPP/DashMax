@@ -4,9 +4,12 @@ using Toybox.Math;
 using Toybox.System;
 using Toybox.WatchUi;
 
-// Simulator demonstration only. No real sensor or weather data is consumed.
+// Select mock telemetry or host Activity.Info (including simulator FIT playback).
+// No real weather source is configured.
 // compute() follows the host activity's update cadence; no background timers.
 class DashMaxField extends WatchUi.DataField {
+    var _activity = false;
+    var _ride;
     var _tick = 0;
     var _lastTime = null;
     var _history;
@@ -21,6 +24,7 @@ class DashMaxField extends WatchUi.DataField {
 
     function initialize() {
         DataField.initialize();
+        _ride = new ActivityRide();
         _history = new [90];
         for (var i = 0; i < 90; i += 1) {
             _history[i] = DashMath.mockPower(i - 89);
@@ -41,7 +45,30 @@ class DashMaxField extends WatchUi.DataField {
     }
 
     function compute(info) {
-        var now = System.getTimer() / 1000;
+        var now = (System.getTimer() / 1000).toNumber();
+        var activity = setting("ActivityData") == true;
+        if (activity != _activity) {
+            _activity = activity;
+            _ride = new ActivityRide();
+            _lastTime = null;
+            _head = 0;
+            for (var i = 0; i < 90; i += 1) {
+                _history[i] = activity ? null : DashMath.mockPower(i - 89);
+            }
+        }
+        if (activity) {
+            if (_ride.update(info, now)) {
+                if (_ride.resetHistory) {
+                    for (var h = 0; h < 90; h += 1) {
+                        _history[h] = null;
+                    }
+                    _head = 0;
+                }
+                _history[_head] = _ride.power;
+                _head = (_head + 1) % 90;
+            }
+            return;
+        }
         if (_lastTime != now) {
             if (setting("Animate") && setting("SensorState") != 2) {
                 _tick += 1;
@@ -98,14 +125,27 @@ class DashMaxField extends WatchUi.DataField {
         dc.drawLine(x(12), y(top), x(234), y(top));
     }
 
+    function number(value, suffix) {
+        return value == null ? "--" : value.format("%.0f") + suffix;
+    }
+
+    function speed(value, imperial) {
+        return value == null
+            ? "--"
+            : DashMath.convert(value, imperial).format("%.1f");
+    }
+
     function onUpdate(dc) {
         _width = dc.getWidth();
         _height = dc.getHeight();
         var dark = setting("Dark");
         var imperial = setting("Imperial");
-        var missing = setting("SensorState") == 1;
-        var stopped = setting("SensorState") == 2;
-        var animate = setting("Animate");
+        var activity = setting("ActivityData") == true;
+        var missing = activity
+            ? _ride.power == null
+            : setting("SensorState") == 1;
+        var stopped = !activity && setting("SensorState") == 2;
+        var animate = !activity && setting("Animate");
         var bg = dark ? 0x182820 : 0xf4f4e9;
         _ink = dark ? 0xffffff : 0x182820;
         _muted = dark ? 0xb0c0a0 : 0x506040;
@@ -126,22 +166,43 @@ class DashMaxField extends WatchUi.DataField {
 
         label(dc, "3s POWER", 12, 7, 110, false);
         label(dc, "WATTS", 176, 7, 58, true);
-        var power = missing
-            ? "--"
-            : stopped
-              ? "0"
-              : animate
-                ? DashMath.mockPower(_tick).format("%d")
-                : "312";
+        var power = activity
+            ? number(_ride.power, "")
+            : missing
+              ? "--"
+              : stopped
+                ? "0"
+                : animate
+                  ? DashMath.mockPower(_tick).format("%d")
+                  : "312";
         text(dc, power, 10, 22, 145, 66, _ink, false);
         label(dc, "RIDE AVG", 164, 35, 70, true);
-        text(dc, missing ? "--" : "284 W", 160, 53, 74, 29, _ink, true);
+        text(
+            dc,
+            activity
+                ? number(_ride.averagePower, " W")
+                : missing
+                  ? "--"
+                  : "284 W",
+            160,
+            53,
+            74,
+            29,
+            _ink,
+            true
+        );
 
         dc.setColor(_accent, Graphics.COLOR_TRANSPARENT);
         if (!missing) {
             for (var i = 1; i < 90; i += 1) {
                 var a = _history[(_head + i - 1) % 90];
                 var b = _history[(_head + i) % 90];
+                if (a == null || b == null) {
+                    continue;
+                }
+                // Keep recorded spikes within the fixed 0-450 W graph scale.
+                a = a < 0 ? 0 : a > 450 ? 450 : a;
+                b = b < 0 ? 0 : b > 450 ? 450 : b;
                 dc.drawLine(
                     x(12 + ((i - 1) * 222.0) / 89),
                     y(121 - (a * 28.0) / 450),
@@ -152,16 +213,44 @@ class DashMaxField extends WatchUi.DataField {
         }
         divider(dc, 127);
         label(dc, "HEART RATE", 12, 131, 115, false);
-        text(dc, missing ? "--" : "158", 12, 148, 95, 39, _ink, false);
+        text(
+            dc,
+            activity ? number(_ride.heartRate, "") : missing ? "--" : "158",
+            12,
+            148,
+            95,
+            39,
+            _ink,
+            false
+        );
         label(dc, "bpm", 108, 166, 37, false);
         label(dc, "RIDE AVG", 164, 138, 70, true);
-        text(dc, missing ? "--" : "142 bpm", 154, 158, 80, 27, _ink, true);
+        text(
+            dc,
+            activity
+                ? number(_ride.averageHeartRate, " bpm")
+                : missing
+                  ? "--"
+                  : "142 bpm",
+            154,
+            158,
+            80,
+            27,
+            _ink,
+            true
+        );
 
         divider(dc, 193);
         label(dc, "CADENCE", 12, 198, 90, false);
         text(
             dc,
-            missing ? "--" : stopped ? "0" : "92",
+            activity
+                ? number(_ride.cadence, "")
+                : missing
+                  ? "--"
+                  : stopped
+                    ? "0"
+                    : "92",
             12,
             215,
             60,
@@ -176,7 +265,11 @@ class DashMaxField extends WatchUi.DataField {
         label(dc, imperial ? "mph" : "km/h", 192, 198, 42, true);
         text(
             dc,
-            stopped ? "0.0" : DashMath.convert(26.8, imperial).format("%.1f"),
+            activity
+                ? speed(_ride.speedKmh, imperial)
+                : stopped
+                  ? "0.0"
+                  : DashMath.convert(26.8, imperial).format("%.1f"),
             124,
             215,
             110,
@@ -186,7 +279,10 @@ class DashMaxField extends WatchUi.DataField {
         );
         label(
             dc,
-            "AVG " + DashMath.convert(24.1, imperial).format("%.1f"),
+            "AVG " +
+                (activity
+                    ? speed(_ride.averageSpeedKmh, imperial)
+                    : DashMath.convert(24.1, imperial).format("%.1f")),
             124,
             245,
             110,
@@ -217,16 +313,39 @@ class DashMaxField extends WatchUi.DataField {
         if (animate) {
             seconds += _tick;
         }
+        if (activity) {
+            km = _ride.distanceKm;
+            seconds = _ride.elapsedSeconds;
+        }
         label(dc, "DIST", 99, 266, 55, true);
-        text(dc, DashMath.distance(km, imperial), 96, 283, 62, 22, _ink, true);
+        text(
+            dc,
+            km == null ? "--" : DashMath.distance(km, imperial),
+            96,
+            283,
+            62,
+            22,
+            _ink,
+            true
+        );
         label(dc, imperial ? "mi" : "km", 120, 306, 38, true);
         label(dc, "ELAPSED", 165, 266, 69, true);
-        text(dc, DashMath.elapsed(seconds), 162, 283, 72, 22, _ink, true);
+        text(
+            dc,
+            seconds == null ? "--" : DashMath.elapsed(seconds),
+            162,
+            283,
+            72,
+            22,
+            _ink,
+            true
+        );
         label(dc, stopped ? "PAUSED" : "TIME", 165, 306, 69, true);
     }
 
     function drawWind(dc, imperial) {
-        var scenario = setting("WindScenario");
+        var scenario =
+            setting("ActivityData") == true ? 5 : setting("WindScenario");
         var relative = 48.19;
         if (scenario == 1) {
             relative = 0.0;

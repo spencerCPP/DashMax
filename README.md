@@ -23,7 +23,7 @@ Distance and time use measured canvas text widths and resize when fonts finish l
 
 ## Garmin Edge 840 simulator
 
-A native Monkey C data-field demo now lives in [`garmin/`](garmin/README.md). See that guide for SDK installation, `npm run garmin:doctor`, `npm run garmin:sim`, and native tests. This target uses mock data and built-in Garmin fonts. Native compilation and simulator execution are not yet verified because the cloud environment blocks Garmin SDK downloads.
+A native Monkey C data-field demo now lives in [`garmin/`](garmin/README.md). See that guide for SDK installation, `npm run garmin:doctor`, `npm run garmin:sim`, and native tests. This target uses built-in Garmin fonts and supports either mock data or host activity data from simulator FIT playback. See the Garmin guide for playback instructions. The base target compiled on macOS; the new activity-data adapter still needs local SDK compilation and simulator testing because cloud Garmin downloads are blocked.
 
 ## Connect IQ production port
 

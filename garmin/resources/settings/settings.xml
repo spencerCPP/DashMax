@@ -1,4 +1,5 @@
 <settings>
+  <setting propertyKey="@Properties.ActivityData" title="@Strings.ActivityDataTitle"><settingConfig type="boolean"/></setting>
   <setting propertyKey="@Properties.Dark" title="@Strings.DarkTitle"><settingConfig type="boolean"/></setting>
   <setting propertyKey="@Properties.Imperial" title="@Strings.ImperialTitle"><settingConfig type="boolean"/></setting>
   <setting propertyKey="@Properties.Animate" title="@Strings.AnimateTitle"><settingConfig type="boolean"/></setting>
