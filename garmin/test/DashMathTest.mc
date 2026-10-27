@@ -17,6 +17,11 @@ function testWindDirections(logger) {
 
 (:test)
 function testLongRideFormatting(logger) {
+    Test.assert(
+        DashMath.absolute(DashMath.convert(36.0, true) - 22.369362912) < 0.001
+    );
+    Test.assertEqual(DashMath.convert(36.0, false), 36.0);
+    Test.assertEqual(DashMath.distance(1.609344, true), "1.0");
     Test.assertEqual(DashMath.elapsed(38184), "10:36:24");
     Test.assertEqual(DashMath.elapsed(86400), "24:00:00");
     Test.assertEqual(DashMath.distance(999.9, false), "999.9");

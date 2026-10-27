@@ -1,7 +1,6 @@
 <settings>
   <setting propertyKey="@Properties.ActivityData" title="@Strings.ActivityDataTitle"><settingConfig type="boolean"/></setting>
   <setting propertyKey="@Properties.Dark" title="@Strings.DarkTitle"><settingConfig type="boolean"/></setting>
-  <setting propertyKey="@Properties.Imperial" title="@Strings.ImperialTitle"><settingConfig type="boolean"/></setting>
   <setting propertyKey="@Properties.Animate" title="@Strings.AnimateTitle"><settingConfig type="boolean"/></setting>
   <setting propertyKey="@Properties.WindScenario" title="@Strings.WindTitle"><settingConfig type="list">
     <listEntry value="0">@Strings.Oblique</listEntry><listEntry value="1">@Strings.Head</listEntry><listEntry value="2">@Strings.Tail</listEntry><listEntry value="3">@Strings.Left</listEntry><listEntry value="4">@Strings.Right</listEntry><listEntry value="5">@Strings.Unavailable</listEntry><listEntry value="6">@Strings.Stale</listEntry>

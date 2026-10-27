@@ -149,7 +149,9 @@ class DashMaxField extends WatchUi.DataField {
         _width = dc.getWidth();
         _height = dc.getHeight();
         var dark = setting("Dark");
-        var imperial = setting("Imperial");
+        // Read on every redraw so simulator/device unit changes apply in place.
+        var imperial =
+            System.getDeviceSettings().distanceUnits == System.UNIT_STATUTE;
         var activity = activityMode();
         var missing = activity
             ? _ride.power == null
