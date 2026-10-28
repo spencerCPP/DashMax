@@ -102,9 +102,16 @@ class DesignSync {
         }
     }
 
-    function received(code, data) {
+    // The web-request callback must return Void. Object covers all possible
+    // SDK response bodies; narrow to our JSON dictionary before accessing it.
+    function received(code as Lang.Number, data as Lang.Object?) as Void {
         _busy = false;
-        if (code != 200 || !DesignConfig.valid(data) || data["id"] != _id) {
+        if (
+            code != 200 ||
+            !(data instanceof Lang.Dictionary) ||
+            !DesignConfig.valid(data) ||
+            data["id"] != _id
+        ) {
             System.println(
                 "Design sync failed or invalid response, code " +
                     code.toString() +
