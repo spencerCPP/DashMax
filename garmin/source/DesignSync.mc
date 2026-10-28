@@ -6,44 +6,82 @@ using Toybox.System;
 using Toybox.WatchUi;
 
 module DesignConfig {
-    function metric(id) {
+    function sameString(a, b) {
         return (
-            id == "power" ||
-            id == "heartRate" ||
-            id == "distance" ||
-            id == "cadence" ||
-            id == "speed" ||
-            id == "elapsed"
+            a instanceof Lang.String && b instanceof Lang.String && a.equals(b)
         );
     }
-    function valid(data) {
-        if (!(data instanceof Lang.Dictionary) || data["version"] != 1) {
+    function metric(id) {
+        return (
+            id instanceof Lang.String &&
+            (id.equals("power") ||
+                id.equals("heartRate") ||
+                id.equals("distance") ||
+                id.equals("cadence") ||
+                id.equals("speed") ||
+                id.equals("elapsed"))
+        );
+    }
+    function whole(value, minimum, maximum) {
+        if (!(
+            value instanceof Lang.Number ||
+            value instanceof Lang.Long ||
+            value instanceof Lang.Float ||
+            value instanceof Lang.Double
+        )) {
             return false;
+        }
+        return (
+            value >= minimum && value <= maximum && value == value.toNumber()
+        );
+    }
+    function problem(data) {
+        if (!(data instanceof Lang.Dictionary)) {
+            return "Response is not a JSON object";
+        }
+        if (!whole(data["version"], 1, 1)) {
+            return "Unsupported configuration version";
+        }
+        if (!(data["id"] instanceof Lang.String) || data["id"].length() != 12) {
+            return "Missing or invalid design ID";
         }
         var fields = data["fields"];
         if (!(fields instanceof Lang.Array) || fields.size() != 3) {
-            return false;
+            return "Expected exactly three fields";
         }
-        if (!metric(fields[0]) || !metric(fields[1]) || !metric(fields[2])) {
-            return false;
+        for (var i = 0; i < 3; i += 1) {
+            if (!metric(fields[i])) {
+                return "Unsupported metric at slot " + i.toString();
+            }
         }
         if (
-            fields[0] == fields[1] ||
-            fields[0] == fields[2] ||
-            fields[1] == fields[2]
+            sameString(fields[0], fields[1]) ||
+            sameString(fields[0], fields[2]) ||
+            sameString(fields[1], fields[2])
         ) {
-            return false;
+            return "Duplicate metrics";
         }
-        var bg = data["background"];
+        if (!whole(data["background"], 0, 0xffffff)) {
+            return "Background is not a whole RGB value";
+        }
         var fg = data["foreground"];
-        return (
-            bg instanceof Lang.Number &&
-            bg >= 0 &&
-            bg <= 0xffffff &&
-            (fg == 0 || fg == 0xffffff) &&
-            data["revision"] instanceof Lang.Number &&
-            data["revision"] > 0
-        );
+        if (!whole(fg, 0, 0xffffff) || (fg != 0 && fg != 0xffffff)) {
+            return "Foreground must be black or white";
+        }
+        if (!whole(data["revision"], 1, 2147483647)) {
+            return "Revision is not a positive integer";
+        }
+        return null;
+    }
+    function valid(data) {
+        return problem(data) == null;
+    }
+    function normalize(data) {
+        data["version"] = data["version"].toNumber();
+        data["revision"] = data["revision"].toNumber();
+        data["background"] = data["background"].toNumber();
+        data["foreground"] = data["foreground"].toNumber();
+        return data;
     }
 }
 
@@ -61,11 +99,11 @@ class DesignSync {
             var cached = Application.Storage.getValue("designer.lastConfig");
             if (
                 cached instanceof Lang.Dictionary &&
-                cached["server"] == server &&
-                cached["id"] == id &&
+                DesignConfig.sameString(cached["server"], server) &&
+                DesignConfig.sameString(cached["id"], id) &&
                 DesignConfig.valid(cached["config"])
             ) {
-                config = cached["config"];
+                config = DesignConfig.normalize(cached["config"]);
                 System.println("Loaded cached design " + id);
             }
         } catch (error) {
@@ -114,19 +152,34 @@ class DesignSync {
                 PersistedContent.Iterator
     ) as Void {
         _busy = false;
-        if (
-            code != 200 ||
-            !(data instanceof Lang.Dictionary) ||
-            !DesignConfig.valid(data) ||
-            data["id"] != _id
-        ) {
+        if (code != 200) {
             System.println(
-                "Design sync failed or invalid response, code " +
+                "Design HTTP request failed: " +
                     code.toString() +
                     "; keeping cached screen"
             );
             return;
         }
+        var reason = DesignConfig.problem(data);
+        if (reason != null) {
+            System.println(
+                "Design rejected: " + reason + "; keeping cached screen"
+            );
+            return;
+        }
+        if (!(data instanceof Lang.Dictionary)) {
+            return;
+        }
+        if (!DesignConfig.sameString(data["id"], _id)) {
+            System.println(
+                "Design rejected: ID mismatch; expected " +
+                    _id +
+                    ", received " +
+                    data["id"].toString()
+            );
+            return;
+        }
+        DesignConfig.normalize(data);
         if (config != null && config["revision"] == data["revision"]) {
             return;
         }

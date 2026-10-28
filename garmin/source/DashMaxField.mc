@@ -434,7 +434,7 @@ class DashMaxField extends WatchUi.DataField {
             var title = "";
             var unit = "";
             var value = "--";
-            if (id == "power") {
+            if (id.equals("power")) {
                 title = "3s POWER";
                 unit = "W";
                 value = activity
@@ -446,7 +446,7 @@ class DashMaxField extends WatchUi.DataField {
                         : animate
                           ? number(DashMath.mockPower(_tick), "")
                           : "312";
-            } else if (id == "heartRate") {
+            } else if (id.equals("heartRate")) {
                 title = "HEART RATE";
                 unit = "bpm";
                 value = activity
@@ -454,12 +454,12 @@ class DashMaxField extends WatchUi.DataField {
                     : missing
                       ? "--"
                       : "158";
-            } else if (id == "distance") {
+            } else if (id.equals("distance")) {
                 title = "DISTANCE";
                 unit = imperial ? "mi" : "km";
                 var km = activity ? _ride.distanceKm : 42.7;
                 value = km == null ? "--" : DashMath.distance(km, imperial);
-            } else if (id == "cadence") {
+            } else if (id.equals("cadence")) {
                 title = "CADENCE";
                 unit = "rpm";
                 value = activity
@@ -469,7 +469,7 @@ class DashMaxField extends WatchUi.DataField {
                       : stopped
                         ? "0"
                         : "92";
-            } else if (id == "speed") {
+            } else if (id.equals("speed")) {
                 title = "SPEED";
                 unit = imperial ? "mph" : "km/h";
                 value = activity
@@ -477,7 +477,7 @@ class DashMaxField extends WatchUi.DataField {
                     : stopped
                       ? "0.0"
                       : speed(26.8, imperial);
-            } else if (id == "elapsed") {
+            } else if (id.equals("elapsed")) {
                 title = "ELAPSED";
                 var elapsed = activity ? _ride.elapsedSeconds : 5784 + _tick;
                 value = elapsed == null ? "--" : DashMath.elapsed(elapsed);

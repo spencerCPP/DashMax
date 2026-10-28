@@ -24,5 +24,33 @@ function testRemoteDesignValidation(logger) {
     config["background"] = -1;
     Test.assert(!DesignConfig.valid(config));
     Test.assert(!DesignConfig.valid(null));
+    // JSON decoding produces separately allocated strings and numeric wrappers.
+    config["background"] = 65279.0;
+    config["foreground"] = 0.0;
+    config["revision"] = 1l;
+    config["version"] = 1.0;
+    config["fields"] = [
+        "power ".substring(0, 5),
+        "heartRate ".substring(0, 9),
+        "speed ".substring(0, 5),
+    ];
+    Test.assert(DesignConfig.valid(config));
+    Test.assert(
+        DesignConfig.sameString(
+            "abcdef123456 ".substring(0, 12),
+            "abcdef123456"
+        )
+    );
+    config = DesignConfig.normalize(config);
+    Test.assert(config["background"] instanceof Toybox.Lang.Number);
+    config["background"] = 65279.5;
+    Test.assert(!DesignConfig.valid(config));
+    config["background"] = 65279;
+    config["fields"] = [
+        "power ".substring(0, 5),
+        "power__".substring(0, 5),
+        "speed",
+    ];
+    Test.assert(!DesignConfig.valid(config));
     return true;
 }
