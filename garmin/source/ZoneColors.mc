@@ -33,7 +33,7 @@ module ZoneColors {
         return boundaries.size() - 2;
     }
 
-    // Palette is a presentation choice; boundaries always come from Garmin.
+    // Garmin reference colors supplied by the user; limits come from Garmin APIs.
     // Return [background, use white foreground] for strong native contrast.
     function palette(zone, count) {
         if (zone == null || zone < 0 || zone >= count) {
@@ -41,23 +41,23 @@ module ZoneColors {
         }
         if (count == 5) {
             var colors = [
-                [0xd8d8d8, false],
-                [0x0066cc, true],
-                [0x207020, true],
-                [0xe0a020, false],
-                [0xb02020, true],
+                [0xa6a6a6, false],
+                [0x3b97f3, false],
+                [0x40c35d, false],
+                [0xf27716, false],
+                [0xe02c2c, true],
             ];
             return colors[zone];
         }
         if (count == 7) {
             var colors = [
-                [0xd8d8d8, false],
-                [0x0066cc, true],
-                [0x207020, true],
-                [0xe0d040, false],
-                [0xe09020, false],
-                [0xb02020, true],
-                [0x7030a0, true],
+                [0xa6a6a6, false],
+                [0x3b97f3, false],
+                [0x40c35d, false],
+                [0xfaca48, false],
+                [0xf27716, false],
+                [0xe02c2c, true],
+                [0x6f42f3, true],
             ];
             return colors[zone];
         }
