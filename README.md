@@ -27,6 +27,8 @@ A native Monkey C data-field demo now lives in [`garmin/`](garmin/README.md). Se
 
 The native field follows Garmin’s unit preference and data-field background color. Use **Data Fields → Background Color → White / Black** in the simulator; the web demo retains separate theme/unit controls.
 
+The native power and HR sections use Garmin profile zones for background color (without added zone labels). See the Garmin guide for supported zone-array formats and simulator validation. Other sections retain the host background.
+
 ## Connect IQ production port
 
 Metric hierarchy, heading conversion, bounded power history, number formatting, and custom drawing concepts can be ported to Monkey C. The web layout is not a Garmin package; the separate native simulator demo is not yet a production sensor-integrated field. Edge 840 data-field metrics, refresh cadence, memory limits, font packaging, color rendering, and native recording coexistence still need validation against the current SDK, simulator, and hardware. No access to ClimbPro, native navigation, or training readiness is assumed.

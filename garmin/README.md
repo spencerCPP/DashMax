@@ -42,6 +42,19 @@ The footer now shows **HEADING**: a north-up travel arrow, compass direction, an
 
 The power graph has a fixed 0–450 W scale and a 90-sample circular buffer. Mock averages are whole-ride values; activity mode uses host-supplied averages. Paused mock state freezes the mock clock.
 
+## Garmin zone-based section colors
+
+Only the power section (including its whole-ride average and graph) and heart-rate section change background color. There are no added zone labels. The rest of the dashboard keeps Garmin's White/Black background and its usual text colors.
+
+- Power uses the displayed **3-second power** and `UserProfile.getPowerZones(Activity.SPORT_CYCLING)`.
+- HR uses **current HR** and `UserProfile.getHeartRateZones2(Activity.SPORT_CYCLING)`, with the legacy cycling HR API as a guarded fallback.
+- The manifest requests `UserProfile` and requires Connect IQ **5.2.2** for direct Garmin power-zone access. No FTP-percentage defaults or hardcoded physiological thresholds are substituted.
+- Limits refresh every 10 seconds. Garmin may supply a default sport's limits if cycling-specific limits are not configured, as documented by the SDK. On a real Edge, sync the profile from Garmin Connect first; the simulator uses its own profile and does not import Connect zones from a FIT recording.
+- HR expects Garmin's documented six-entry array: minimum zone 1, then maximum zones 1–5. Exact upper-bound values stay in the lower zone. Power accepts an eight-entry min/upper-limit array for seven zones. The SDK signature is verified, but this power-array layout still requires local runtime confirmation; an unrecognized layout stays neutral and its raw values are printed to the console for verification.
+- Missing/zero/below-zone readings or unavailable/invalid limits keep the normal host background. Native palette colors are presentation choices: HR gray/blue/green/orange/red; power gray/blue/green/yellow/orange/red/purple. Text and graph switch to high-contrast black or white within each colored section.
+
+On startup the console prints the fetched limits once. Verify that they match the simulator/device profile. Replay through different power/HR levels and check that only those two sections change. Also check missing channels and both host background colors. Source syntax and XML checks pass here; these native API calls, colors, and regression tests still need a local SDK build/run.
+
 ## Replay a real activity FIT file on macOS
 
 1. Pull the latest source and run `npm run garmin:fit` from the repository root. The terminal must report **Data source: ACTIVITY / FIT PLAYBACK (forced)**.
@@ -74,7 +87,7 @@ FIT playback verifies the activity data path and rendering, not real-device sens
 npm run garmin:test
 ```
 
-This builds a separate `garmin/bin/DashMax-tests.prg` with the SDK's test flag and runs the seven `(:test)` functions in Garmin's simulator. Check that the Garmin runner reports **seven passed tests**: heading math, formatting, activity unit conversion/missing values, three-second power smoothing, playback seek/gap resets, explicit replay cadence correction, and GPS heading availability. An empty or skipped run is not a pass. Inspect compiler output, simulator console, and memory usage before calling this native target ready.
+This builds a separate `garmin/bin/DashMax-tests.prg` with the SDK's test flag and runs the ten `(:test)` functions in Garmin's simulator. Check that the Garmin runner reports **ten passed tests**: heading math, formatting, activity unit conversion/missing values, three-second power smoothing, playback seek/gap resets, explicit replay cadence correction, GPS heading availability, zone boundary handling, unavailable zone handling, and section fill isolation. An empty or skipped run is not a pass. Inspect compiler output, simulator console, and memory usage before calling this native target ready.
 
 For manual acceptance checks, set animation off and test each ride length with both host background colors and both unit systems. Inspect the actual field rectangle at native resolution for clipped units, overlapping averages, and long elapsed times. Exercise cardinal headings and missing/stopped sensor states. Re-enable animation and confirm the graph advances approximately once per second without errors. Built-in device fonts differ from the web font; final typography needs simulator/device review.
 

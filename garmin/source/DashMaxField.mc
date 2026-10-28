@@ -21,10 +21,12 @@ class DashMaxField extends WatchUi.DataField {
     var _line;
     var _accent;
     var _fonts;
+    var _zones;
 
     function initialize() {
         DataField.initialize();
         _ride = createRide();
+        _zones = new GarminZones();
         _history = new [90];
         for (var i = 0; i < 90; i += 1) {
             _history[i] = DashMath.mockPower(i - 89);
@@ -145,6 +147,23 @@ class DashMaxField extends WatchUi.DataField {
             : DashMath.convert(value, imperial).format("%.1f");
     }
 
+    function zoneBackground(dc, value, boundaries, top, height) {
+        var zone = ZoneColors.index(value, boundaries);
+        var selected =
+            boundaries == null
+                ? null
+                : ZoneColors.palette(zone, boundaries.size() - 1);
+        if (selected == null) {
+            return;
+        }
+        dc.setColor(selected[0], Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(0, y(top), _width, y(top + height) - y(top));
+        _ink = selected[1] ? Graphics.COLOR_WHITE : Graphics.COLOR_BLACK;
+        _muted = _ink;
+        _line = _ink;
+        _accent = _ink;
+    }
+
     function onUpdate(dc) {
         _width = dc.getWidth();
         _height = dc.getHeight();
@@ -178,6 +197,21 @@ class DashMaxField extends WatchUi.DataField {
             return;
         }
 
+        _zones.refresh();
+        var hostInk = _ink;
+        var hostMuted = _muted;
+        var hostLine = _line;
+        var hostAccent = _accent;
+        var powerValue = activity
+            ? _ride.power
+            : missing
+              ? null
+              : stopped
+                ? 0
+                : animate
+                  ? DashMath.mockPower(_tick)
+                  : 312;
+        zoneBackground(dc, powerValue, _zones.power, 0, 127);
         label(dc, "3s POWER", 12, 7, 110, false);
         label(dc, "WATTS", 176, 7, 58, true);
         var power = activity
@@ -225,6 +259,12 @@ class DashMaxField extends WatchUi.DataField {
                 );
             }
         }
+        _ink = hostInk;
+        _muted = hostMuted;
+        _line = hostLine;
+        _accent = hostAccent;
+        var hrValue = activity ? _ride.heartRate : missing ? null : 158;
+        zoneBackground(dc, hrValue, _zones.heartRate, 128, 65);
         divider(dc, 127);
         label(dc, "HEART RATE", 12, 131, 115, false);
         text(
@@ -254,6 +294,10 @@ class DashMaxField extends WatchUi.DataField {
             true
         );
 
+        _ink = hostInk;
+        _muted = hostMuted;
+        _line = hostLine;
+        _accent = hostAccent;
         divider(dc, 193);
         label(dc, "CADENCE", 12, 198, 90, false);
         text(
