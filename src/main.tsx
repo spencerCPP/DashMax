@@ -8,6 +8,7 @@ import '@fontsource/dm-sans/500.css';
 import '@fontsource/dm-sans/600.css';
 import '@fontsource/dm-sans/700.css';
 import './style.css';
+import { Designer } from './Designer';
 
 function Fit({ children, max = 20, min = 12 }: {children: string; max?: number; min?: number}) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -52,4 +53,4 @@ function App() {
     </main></div>;
 }
 function Range({label,value,max,unit,onChange}:{label:string;value:number;max:number;unit:string;onChange:(n:number)=>void}) { return <label className="range-label"><span>{label}<b>{Math.round(value)}{unit}</b></span><input type="range" min="0" max={max} step="1" value={value} onChange={e=>onChange(Number(e.target.value))}/></label>; }
-createRoot(document.getElementById('root')!).render(<App/>);
+createRoot(document.getElementById('root')!).render(window.location.pathname === '/designer' ? <Designer/> : <App/>);

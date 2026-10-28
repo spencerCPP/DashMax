@@ -22,11 +22,18 @@ class DashMaxField extends WatchUi.DataField {
     var _accent;
     var _fonts;
     var _zones;
+    var _design = null;
 
     function initialize() {
         DataField.initialize();
         _ride = createRide();
         _zones = new GarminZones();
+        if (BuildMode.DESIGN_SYNC) {
+            _design = new DesignSync(
+                BuildMode.DESIGN_SERVER,
+                BuildMode.DESIGN_ID
+            );
+        }
         _history = new [90];
         for (var i = 0; i < 90; i += 1) {
             _history[i] = DashMath.mockPower(i - 89);
@@ -53,6 +60,9 @@ class DashMaxField extends WatchUi.DataField {
     }
 
     function activityMode() {
+        if (BuildMode.DESIGN_SYNC) {
+            return BuildMode.ACTIVITY_DATA;
+        }
         return BuildMode.ACTIVITY_DATA || setting("ActivityData") == true;
     }
 
@@ -197,6 +207,11 @@ class DashMaxField extends WatchUi.DataField {
             return;
         }
 
+        if (_design != null) {
+            _design.poll();
+            drawDesign(dc, imperial, activity, missing, stopped, animate);
+            return;
+        }
         _zones.refresh();
         var hostInk = _ink;
         var hostMuted = _muted;
@@ -399,6 +414,87 @@ class DashMaxField extends WatchUi.DataField {
             true
         );
         label(dc, stopped ? "PAUSED" : "TIME", 165, 306, 69, true);
+    }
+
+    function drawDesign(dc, imperial, activity, missing, stopped, animate) {
+        var config = _design.config;
+        if (config == null) {
+            text(dc, "Waiting for design", 12, 125, 222, 35, _ink, false);
+            label(dc, "Check the sync console", 12, 170, 222, false);
+            return;
+        }
+        _ink = config["foreground"];
+        _muted = _ink;
+        dc.setColor(_ink, config["background"]);
+        dc.clear();
+        var fields = config["fields"];
+        for (var i = 0; i < 3; i += 1) {
+            var id = fields[i];
+            var top = (i * 322) / 3;
+            var title = "";
+            var unit = "";
+            var value = "--";
+            if (id == "power") {
+                title = "3s POWER";
+                unit = "W";
+                value = activity
+                    ? number(_ride.power, "")
+                    : missing
+                      ? "--"
+                      : stopped
+                        ? "0"
+                        : animate
+                          ? number(DashMath.mockPower(_tick), "")
+                          : "312";
+            } else if (id == "heartRate") {
+                title = "HEART RATE";
+                unit = "bpm";
+                value = activity
+                    ? number(_ride.heartRate, "")
+                    : missing
+                      ? "--"
+                      : "158";
+            } else if (id == "distance") {
+                title = "DISTANCE";
+                unit = imperial ? "mi" : "km";
+                var km = activity ? _ride.distanceKm : 42.7;
+                value = km == null ? "--" : DashMath.distance(km, imperial);
+            } else if (id == "cadence") {
+                title = "CADENCE";
+                unit = "rpm";
+                value = activity
+                    ? number(_ride.cadence, "")
+                    : missing
+                      ? "--"
+                      : stopped
+                        ? "0"
+                        : "92";
+            } else if (id == "speed") {
+                title = "SPEED";
+                unit = imperial ? "mph" : "km/h";
+                value = activity
+                    ? speed(_ride.speedKmh, imperial)
+                    : stopped
+                      ? "0.0"
+                      : speed(26.8, imperial);
+            } else if (id == "elapsed") {
+                title = "ELAPSED";
+                var elapsed = activity ? _ride.elapsedSeconds : 5784 + _tick;
+                value = elapsed == null ? "--" : DashMath.elapsed(elapsed);
+            }
+            label(dc, title, 12, top + 10, 222, false);
+            text(dc, value, 12, top + 32, 180, 60, _ink, false);
+            label(dc, unit, 195, top + 70, 39, true);
+            if (i < 2) {
+                dc.setColor(_ink, Graphics.COLOR_TRANSPARENT);
+                dc.drawLine(
+                    x(12),
+                    y(((i + 1) * 322) / 3),
+                    x(234),
+                    y(((i + 1) * 322) / 3)
+                );
+            }
+        }
     }
 
     function drawHeading(dc) {

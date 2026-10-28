@@ -4,6 +4,7 @@
     <iq:products><iq:product id="edge840"/></iq:products>
     <iq:permissions>
       <iq:uses-permission id="UserProfile"/>
+      <iq:uses-permission id="Communications"/>
     </iq:permissions>
     <iq:languages><iq:language>eng</iq:language></iq:languages>
     <iq:barrels/>

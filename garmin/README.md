@@ -4,6 +4,10 @@ This is a **native Monkey C Connect IQ data field targeting Edge 840**, alongsid
 
 **Validation status:** SDK 9.3.0 compiled the original native target successfully on macOS. A reported runtime crash from unsupported `Math.abs` calls was fixed. FIT playback has since been exercised on macOS. The new heading display has passed source syntax checks but has **not yet been compiled or run in Garmin's simulator**: cloud SDK downloads remain blocked. Run the local native tests and playback checks below; web test results are not native simulator results.
 
+## Three-field web configuration experiment
+
+See [the designer transfer test](../docs/designer-test.md) for `npm run designer` and `npm run garmin:design`. It selects three metrics and one background, fetches changes by design ID over HTTPS, and retains the last valid configuration offline. It uses mock data by default and has an optional FIT mode. This new network path is source-checked but still requires local SDK compilation and simulator verification.
+
 ## One-time installation
 
 1. Install [Garmin Connect IQ SDK Manager](https://developer.garmin.com/connect-iq/sdk/) for your OS. Open it, follow Garmin's licence/sign-in prompts if shown, install a current stable SDK, and make it the active SDK.
@@ -87,7 +91,7 @@ FIT playback verifies the activity data path and rendering, not real-device sens
 npm run garmin:test
 ```
 
-This builds a separate `garmin/bin/DashMax-tests.prg` with the SDK's test flag and runs the ten `(:test)` functions in Garmin's simulator. Check that the Garmin runner reports **ten passed tests**: heading math, formatting, activity unit conversion/missing values, three-second power smoothing, playback seek/gap resets, explicit replay cadence correction, GPS heading availability, zone boundary handling, unavailable zone handling, and section fill isolation. An empty or skipped run is not a pass. Inspect compiler output, simulator console, and memory usage before calling this native target ready.
+This builds a separate `garmin/bin/DashMax-tests.prg` with the SDK's test flag and runs the eleven `(:test)` functions in Garmin's simulator. Check that the Garmin runner reports **eleven passed tests**: heading math, formatting, activity unit conversion/missing values, three-second power smoothing, playback seek/gap resets, explicit replay cadence correction, GPS heading availability, zone boundary handling, unavailable zone handling, section fill isolation, and remote design validation. An empty or skipped run is not a pass. Inspect compiler output, simulator console, and memory usage before calling this native target ready.
 
 For manual acceptance checks, set animation off and test each ride length with both host background colors and both unit systems. Inspect the actual field rectangle at native resolution for clipped units, overlapping averages, and long elapsed times. Exercise cardinal headings and missing/stopped sensor states. Re-enable animation and confirm the graph advances approximately once per second without errors. Built-in device fonts differ from the web font; final typography needs simulator/device review.
 

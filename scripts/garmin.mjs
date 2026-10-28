@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync, spawn } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import net from 'node:net';
+import { parseDesignLaunchArgs } from './design-launch.mjs';
 import { prepareBuildProject, cadenceDivisorFor } from './garmin-project.mjs';
 
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'garmin');
@@ -51,7 +52,7 @@ function checkSdk() {
   console.log(`SDK: ${sdk}\nTarget: edge840\nProject: ${project}`);
 }
 
-function build(tests, activityData = false, cadenceDivisor = 1) {
+function build(tests, activityData = false, cadenceDivisor = 1, design = null) {
   const key = process.env.CIQ_DEVELOPER_KEY || path.join(project, '.keys', 'developer_key.der');
   if (!existsSync(key)) {
     if (process.env.CIQ_DEVELOPER_KEY) throw new Error('CIQ_DEVELOPER_KEY points to a missing file.');
@@ -65,8 +66,8 @@ function build(tests, activityData = false, cadenceDivisor = 1) {
     console.log('Created an ignored local development signing key.');
   }
   mkdirSync(path.join(project, 'bin'), { recursive: true });
-  const program = path.join(project, 'bin', tests ? 'DashMax-tests.prg' : activityData ? 'DashMax-fit.prg' : 'DashMax.prg');
-  const buildProject = prepareBuildProject(project, activityData, cadenceDivisor);
+  const program = path.join(project, 'bin', tests ? 'DashMax-tests.prg' : design ? 'DashMax-design.prg' : activityData ? 'DashMax-fit.prg' : 'DashMax.prg');
+  const buildProject = prepareBuildProject(project, activityData, cadenceDivisor, design);
   console.log(activityData ? 'Data source: ACTIVITY / FIT PLAYBACK (forced)' : 'Data source: app properties (mock by default)');
   if (activityData) console.log(`Replay cadence divisor: ${cadenceDivisor}`);
   // Use the SDK Java compiler directly; avoids Windows .bat quoting for builds.
@@ -115,13 +116,14 @@ async function launchSimulator() {
 }
 
 try {
-  if (!['doctor', 'build', 'sim', 'fit', 'test'].includes(action)) throw new Error('Usage: node scripts/garmin.mjs doctor|build|sim|fit|test');
-  const cadenceDivisor = cadenceDivisorFor(action, process.argv.slice(3));
+  if (!['doctor', 'build', 'sim', 'fit', 'design', 'test'].includes(action)) throw new Error('Usage: node scripts/garmin.mjs doctor|build|sim|fit|design|test');
+  const design = action === 'design' ? parseDesignLaunchArgs(process.argv.slice(3)) : null;
+  const cadenceDivisor = design ? design.cadenceDivisor : cadenceDivisorFor(action, process.argv.slice(3));
   checkSdk();
   if (action !== 'doctor') {
     const tests = action === 'test';
-    const program = build(tests, action === 'fit', cadenceDivisor);
-    if (action === 'sim' || action === 'fit' || tests) {
+    const program = build(tests, design ? design.fit : action === 'fit', cadenceDivisor, design);
+    if (action === 'sim' || action === 'fit' || action === 'design' || tests) {
       const offset = existsSync(simulatorLog) ? statSync(simulatorLog).size : 0;
       await launchSimulator();
       console.log(`Simulator console log: ${simulatorLog}`);

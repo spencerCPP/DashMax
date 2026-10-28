@@ -21,6 +21,10 @@ The footer shows rider heading: a north-up arrow, compass direction, and bearing
 
 Distance and time use measured canvas text widths and resize when fonts finish loading. Distance drops its decimal when rounded displayed distance reaches 1000 units. Controls cover 9.7 through 1000 km, a 1000-mile equivalent, and elapsed times through 24 hours. Inspect at **1:1** to judge device-scale readability. All values and live data are mocked; telemetry is not recorded.
 
+## Web designer → Garmin transfer test
+
+Run `npm run designer` to choose three metrics and a background, save a design ID, and update that design. The separate `garmin:design` target fetches the configuration over HTTPS and caches it. See [the macOS test guide](docs/designer-test.md) for the tunnel, initial pairing command, and the no-rebuild acceptance check. No Store publication is needed for simulator testing. Web/API tests pass; the new native network path still requires local SDK validation.
+
 ## Garmin Edge 840 simulator
 
 A native Monkey C data-field demo now lives in [`garmin/`](garmin/README.md). See that guide for SDK installation, `npm run garmin:doctor`, `npm run garmin:sim`, and native tests. This target uses built-in Garmin fonts and supports either mock data or host activity data from simulator FIT playback. See the Garmin guide for playback instructions. FIT playback has been exercised on macOS. The new heading display still needs local Garmin compilation and simulator validation because cloud Garmin downloads are blocked.

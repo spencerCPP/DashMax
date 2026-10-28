@@ -7,3 +7,5 @@ garmin/*.prg
 garmin/*.prg.debug.xml
 garmin/*.iq
 *.der
+
+.dashmax-designs/
