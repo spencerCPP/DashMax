@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Cross-platform Connect IQ launcher. No npm packages or credentials required.
-import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, mkdirSync, writeFileSync, openSync, closeSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +10,7 @@ import net from 'node:net';
 import { prepareBuildProject, cadenceDivisorFor } from './garmin-project.mjs';
 
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'garmin');
+const simulatorLog = path.join(project, 'bin', 'simulator.log');
 const windows = process.platform === 'win32';
 const ciqRoot = windows
   ? path.join(process.env.APPDATA || path.join(homedir(), 'AppData', 'Roaming'), 'Garmin', 'ConnectIQ')
@@ -90,11 +91,19 @@ async function simulatorReady() {
 }
 
 async function launchSimulator() {
-  if (await simulatorReady()) return;
+  if (await simulatorReady()) {
+    if (!existsSync(simulatorLog)) console.log('Existing simulator has no captured log. Quit it once and rerun to enable persistent console output.');
+    return;
+  }
   const executable = path.join(sdk, 'bin', windows ? 'simulator.exe' : 'connectiq');
   if (!existsSync(executable)) throw new Error(`Simulator launcher missing: ${executable}`);
   let error;
-  const child = spawn(executable, [], { cwd: project, stdio: 'ignore', detached: true });
+  mkdirSync(path.dirname(simulatorLog), { recursive: true });
+  const logFd = openSync(simulatorLog, 'a', 0o600);
+  let child;
+  try {
+    child = spawn(executable, [], { cwd: project, stdio: ['ignore', logFd, logFd], detached: true });
+  } finally { closeSync(logFd); }
   child.on('error', e => { error = e; });
   child.unref();
   for (let attempt = 0; attempt < 40; attempt++) {
@@ -113,9 +122,17 @@ try {
     const tests = action === 'test';
     const program = build(tests, action === 'fit', cadenceDivisor);
     if (action === 'sim' || action === 'fit' || tests) {
+      const offset = existsSync(simulatorLog) ? statSync(simulatorLog).size : 0;
       await launchSimulator();
-      run(path.join(sdk, 'bin', windows ? 'monkeydo.bat' : 'monkeydo'),
-        [program, 'edge840', ...(tests ? [windows ? '/t' : '-t'] : [])]);
+      console.log(`Simulator console log: ${simulatorLog}`);
+      const follower = spawn(process.execPath,
+        [fileURLToPath(new URL('./simulator-output.mjs', import.meta.url)), simulatorLog, String(offset)],
+        { stdio: ['ignore', 'inherit', 'inherit'] });
+      follower.on('error', error => console.error(`Console streaming failed: ${error.message}`));
+      try {
+        run(path.join(sdk, 'bin', windows ? 'monkeydo.bat' : 'monkeydo'),
+          [program, 'edge840', ...(tests ? [windows ? '/t' : '-t'] : [])]);
+      } finally { follower.kill(); }
     }
   }
 } catch (error) {

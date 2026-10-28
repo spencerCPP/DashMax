@@ -108,6 +108,20 @@ Optional `CIQ_DEVELOPER_KEY` points to an existing local DER signing key instead
 
 Install Garmin's **Monkey C** extension and open the `garmin` directory as your workspace (it contains `monkey.jungle`). Select Edge 840 as the target, configure your development key through the extension, and use the extension's build/run commands. This uses the same sources and manifest as the npm commands.
 
+## Simulator console output across rebuilds
+
+The launcher now sends the simulator process's stdout/stderr to the ignored file `garmin/bin/simulator.log` and streams new bytes into each `garmin:sim`, `garmin:fit`, or `garmin:test` run. The simulator can remain open between builds; output no longer depends on which Terminal session originally started it. `monkeydo` output is also inherited normally.
+
+**Quit the simulator once after updating to this launcher**, then start it through an npm Garmin command. An already-running simulator retains its original output descriptors; they cannot be reattached retroactively. A simulator opened independently through SDK Manager may also need to be closed once so the launcher can start it with log capture.
+
+For a separate persistent console window on macOS/Linux:
+
+```sh
+tail -f garmin/bin/simulator.log
+```
+
+Add `System.println(...)` to `garmin/source/`, then rebuild. FIT builds overwrite the generated copy under `garmin/bin/fit-project`, so changes made directly in that generated directory are temporary. The log is appended across runs; the CLI streams only new output. The file-following/reconnection tests pass under Node, but simulator capture still needs local macOS validation.
+
 ## Troubleshooting
 
 - **SDK not found:** launch SDK Manager and select an installed SDK, or set `CIQ_SDK_HOME`.
