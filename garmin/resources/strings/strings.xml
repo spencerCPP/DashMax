@@ -1,7 +1,6 @@
 <strings>
   <string id="ActivityDataTitle">Use activity data (FIT playback / sensors)</string>
   <string id="AppName">DashMax Test Field</string>
-  <string id="DarkTitle">Dark theme</string>
   <string id="AnimateTitle">Animate mock telemetry</string>
   <string id="RideTitle">Ride length test</string>
   <string id="NormalRide">42.7 km / 1:36:24</string>

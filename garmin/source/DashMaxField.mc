@@ -148,7 +148,10 @@ class DashMaxField extends WatchUi.DataField {
     function onUpdate(dc) {
         _width = dc.getWidth();
         _height = dc.getHeight();
-        var dark = setting("Dark");
+        // Data Fields > Background Color is supplied by the host activity.
+        // Re-read each redraw so host theme changes take effect in place.
+        var bg = getBackgroundColor();
+        var dark = bg == Graphics.COLOR_BLACK;
         // Read on every redraw so simulator/device unit changes apply in place.
         var imperial =
             System.getDeviceSettings().distanceUnits == System.UNIT_STATUTE;
@@ -158,7 +161,6 @@ class DashMaxField extends WatchUi.DataField {
             : setting("SensorState") == 1;
         var stopped = !activity && setting("SensorState") == 2;
         var animate = !activity && setting("Animate");
-        var bg = dark ? 0x182820 : 0xf4f4e9;
         _ink = dark ? 0xffffff : 0x182820;
         _muted = dark ? 0xb0c0a0 : 0x506040;
         _line = dark ? 0x405040 : 0xc0c8b0;
