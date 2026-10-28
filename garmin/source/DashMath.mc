@@ -10,7 +10,12 @@ module DashMath {
         if (radians == null) {
             return null;
         }
-        return ((((radians * 180.0) / Math.PI) % 360) + 360) % 360;
+        // Monkey C modulo only supports Number/Long, not floating-point angles.
+        // Remove whole turns arithmetically to retain fractional degrees.
+        var degrees = (radians * 180.0) / Math.PI;
+        var turns = (degrees / 360.0).toNumber();
+        degrees -= turns * 360.0;
+        return degrees < 0 ? degrees + 360.0 : degrees;
     }
 
     function headingName(degrees) {

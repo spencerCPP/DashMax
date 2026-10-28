@@ -10,6 +10,21 @@ function testHeadingDirections(logger) {
     Test.assert(
         DashMath.absolute(DashMath.headingDegrees(-Math.PI / 2) - 270) < 0.001
     );
+    Test.assert(
+        DashMath.absolute(
+            DashMath.headingDegrees((25.25 * Math.PI) / 180.0) - 25.25
+        ) < 0.001
+    );
+    Test.assert(
+        DashMath.absolute(
+            DashMath.headingDegrees((-1.25 * Math.PI) / 180.0) - 358.75
+        ) < 0.001
+    );
+    Test.assert(
+        DashMath.absolute(
+            DashMath.headingDegrees((725.5 * Math.PI) / 180.0) - 5.5
+        ) < 0.001
+    );
     Test.assertEqual(DashMath.headingName(null), "--");
     Test.assertEqual(DashMath.headingName(0), "N");
     Test.assertEqual(DashMath.headingName(45), "NE");
