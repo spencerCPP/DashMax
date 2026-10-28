@@ -1,6 +1,7 @@
 using Toybox.Application;
 using Toybox.Communications;
 using Toybox.Lang;
+using Toybox.PersistedContent;
 using Toybox.System;
 using Toybox.WatchUi;
 
@@ -102,9 +103,16 @@ class DesignSync {
         }
     }
 
-    // The web-request callback must return Void. Object covers all possible
-    // SDK response bodies; narrow to our JSON dictionary before accessing it.
-    function received(code as Lang.Number, data as Lang.Object?) as Void {
+    // Match the SDK's callback union exactly, then narrow to JSON below.
+    function received(
+        code as Lang.Number,
+        data as
+            Null or
+                Lang.ByteArray or
+                Lang.Dictionary or
+                Lang.String or
+                PersistedContent.Iterator
+    ) as Void {
         _busy = false;
         if (
             code != 200 ||
