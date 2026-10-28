@@ -1,17 +1,21 @@
 using Toybox.Test;
+using Toybox.Math;
 
 (:test)
-function testWindDirections(logger) {
-    Test.assertEqual(DashMath.absolute(-12), 12);
-    Test.assertEqual(DashMath.absolute(12), 12);
-    Test.assertEqual(DashMath.absolute(0), 0);
-    Test.assertEqual(DashMath.relativeFrom(359, 1), 2);
-    Test.assertEqual(DashMath.relativeFrom(90, 0), -90);
-    Test.assertEqual(DashMath.relativeFrom(270, 0), 90);
-    Test.assert(DashMath.absolute(DashMath.component(0, 12) - 12) < 0.001);
-    Test.assert(DashMath.absolute(DashMath.component(180, 12) + 12) < 0.001);
-    Test.assert(DashMath.absolute(DashMath.component(90, 12)) < 0.001);
-    Test.assert(DashMath.absolute(DashMath.component(48.19, 12) - 8) < 0.01);
+function testHeadingDirections(logger) {
+    Test.assertEqual(DashMath.headingDegrees(null), null);
+    Test.assert(
+        DashMath.absolute(DashMath.headingDegrees(Math.PI / 2) - 90) < 0.001
+    );
+    Test.assert(
+        DashMath.absolute(DashMath.headingDegrees(-Math.PI / 2) - 270) < 0.001
+    );
+    Test.assertEqual(DashMath.headingName(null), "--");
+    Test.assertEqual(DashMath.headingName(0), "N");
+    Test.assertEqual(DashMath.headingName(45), "NE");
+    Test.assertEqual(DashMath.headingName(90), "E");
+    Test.assertEqual(DashMath.headingName(180), "S");
+    Test.assertEqual(DashMath.headingName(359.9), "N");
     return true;
 }
 

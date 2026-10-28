@@ -6,12 +6,20 @@ module DashMath {
         return value < 0 ? -value : value;
     }
 
-    function relativeFrom(course, from) {
-        return ((((from - course + 180) % 360) + 360) % 360) - 180;
+    function headingDegrees(radians) {
+        if (radians == null) {
+            return null;
+        }
+        return ((((radians * 180.0) / Math.PI) % 360) + 360) % 360;
     }
 
-    function component(relative, speed) {
-        return speed * Math.cos((relative * Math.PI) / 180.0);
+    function headingName(degrees) {
+        if (degrees == null) {
+            return "--";
+        }
+        var names = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+        var index = ((degrees + 22.5) / 45).toNumber() % 8;
+        return names[index];
     }
 
     function convert(km, imperial) {

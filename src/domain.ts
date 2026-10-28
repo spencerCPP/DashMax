@@ -1,8 +1,7 @@
-export const normalize180 = (d: number) => ((d + 180) % 360 + 360) % 360 - 180;
-export function wind(course: number, from: number, speed: number) {
-  const relative = normalize180(from - course);
-  const component = speed * Math.cos(relative * Math.PI / 180);
-  return { relative, component, label: speed === 0 ? 'CALM' : Math.abs(component) < speed * 0.15 ? 'CROSSWIND' : component >= 0 ? 'HEADWIND' : 'TAILWIND' };
+export function heading(degrees: number | null) {
+  if (degrees === null || !Number.isFinite(degrees)) return null;
+  const normalized = ((degrees % 360) + 360) % 360;
+  return { degrees: Math.round(normalized) % 360, cardinal: ['N','NE','E','SE','S','SW','W','NW'][Math.floor((normalized + 22.5) / 45) % 8] };
 }
 export const convert = (km: number, imperial: boolean) => km * (imperial ? 0.621371192 : 1);
 export const distanceText = (km: number, imperial: boolean) => { const n = convert(km, imperial); return Number(n.toFixed(1)) >= 1000 ? n.toFixed(0) : n.toFixed(1); };

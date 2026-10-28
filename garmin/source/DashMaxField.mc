@@ -5,7 +5,7 @@ using Toybox.System;
 using Toybox.WatchUi;
 
 // Select mock telemetry or host Activity.Info (including simulator FIT playback).
-// No real weather source is configured.
+// Heading uses GPS course, not a weather source.
 // compute() follows the host activity's update cadence; no background timers.
 class DashMaxField extends WatchUi.DataField {
     var _activity = false;
@@ -302,7 +302,7 @@ class DashMaxField extends WatchUi.DataField {
         );
 
         divider(dc, 262);
-        drawWind(dc, imperial);
+        drawHeading(dc);
         var ride = setting("RideScenario");
         var km = 42.7;
         var seconds = 5784;
@@ -355,73 +355,40 @@ class DashMaxField extends WatchUi.DataField {
         label(dc, stopped ? "PAUSED" : "TIME", 165, 306, 69, true);
     }
 
-    function drawWind(dc, imperial) {
-        var scenario = activityMode() ? 5 : setting("WindScenario");
-        var relative = 48.19;
-        if (scenario == 1) {
-            relative = 0.0;
-        }
-        if (scenario == 2) {
-            relative = 180.0;
-        }
-        if (scenario == 3) {
-            relative = -90.0;
-        }
-        if (scenario == 4) {
-            relative = 90.0;
-        }
-        label(
-            dc,
-            scenario == 6 ? "STALE WIND" : "EST WIND",
-            12,
-            266,
-            81,
-            false
-        );
-        if (scenario == 5) {
+    function drawHeading(dc) {
+        var degrees = activityMode()
+            ? _ride.headingDegrees
+            : setting("SensorState") == 2
+              ? null
+              : 0.0;
+        label(dc, "HEADING", 12, 266, 81, false);
+        if (degrees == null) {
             text(dc, "--", 12, 283, 76, 22, _ink, false);
-            label(dc, "NO DATA", 12, 306, 81, false);
+            label(dc, "NO COURSE", 12, 306, 81, false);
             return;
         }
-        var c = DashMath.component(
-            relative,
-            DashMath.convert(19.312128, imperial)
-        );
-        var radians = (relative * Math.PI) / 180.0;
-        dc.setColor(_line, Graphics.COLOR_TRANSPARENT);
-        dc.drawCircle(x(23), y(293), x(10));
-        dc.setColor(_ink, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(x(23), y(298), x(23), y(287));
-        dc.drawLine(x(23), y(287), x(20), y(290));
-        dc.drawLine(x(23), y(287), x(26), y(290));
+        var radians = (degrees * Math.PI) / 180.0;
+        // North-up arrow: 0=N (up), 90=E (right).
+        var tipX = 25 + 10 * Math.sin(radians);
+        var tipY = 294 - 10 * Math.cos(radians);
+        var tailX = 25 - 7 * Math.sin(radians);
+        var tailY = 294 + 7 * Math.cos(radians);
         dc.setColor(_accent, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(
-            x(23 + 10 * Math.sin(radians)),
-            y(293 - 10 * Math.cos(radians)),
-            2
+        dc.drawLine(x(tailX), y(tailY), x(tipX), y(tipY));
+        dc.drawLine(
+            x(tipX),
+            y(tipY),
+            x(tipX - 7 * Math.sin(radians) + 4 * Math.cos(radians)),
+            y(tipY + 7 * Math.cos(radians) + 4 * Math.sin(radians))
         );
-        text(
-            dc,
-            DashMath.convert(19.312128, imperial).format("%.0f"),
-            38,
-            282,
-            24,
-            23,
-            _ink,
-            false
+        dc.drawLine(
+            x(tipX),
+            y(tipY),
+            x(tipX - 7 * Math.sin(radians) - 4 * Math.cos(radians)),
+            y(tipY + 7 * Math.cos(radians) - 4 * Math.sin(radians))
         );
-        label(dc, imperial ? "mph" : "km/h", 65, 289, 28, false);
-        var absoluteComponent = DashMath.absolute(c);
-        var direction =
-            absoluteComponent < 0.1 ? "CROSS" : c > 0 ? "HEAD" : "TAIL";
-        var magnitude = absoluteComponent.format("%.0f");
-        label(
-            dc,
-            direction == "CROSS" ? direction : magnitude + " " + direction,
-            12,
-            306,
-            81,
-            false
-        );
+        text(dc, DashMath.headingName(degrees), 42, 283, 48, 22, _ink, false);
+        var rounded = (degrees + 0.5).toNumber() % 360;
+        label(dc, rounded.format("%d") + " deg", 12, 306, 81, false);
     }
 }

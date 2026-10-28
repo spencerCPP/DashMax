@@ -6,6 +6,7 @@ class PlaybackTestInfo {
     var currentHeartRate = null;
     var averageHeartRate = null;
     var currentCadence = null;
+    var currentHeading = null;
     var currentSpeed = null;
     var averageSpeed = null;
     var elapsedDistance = null;
@@ -106,5 +107,23 @@ function testExplicitReplayCadenceCorrection(logger) {
     info.currentCadence = null;
     ride.update(info, 0);
     Test.assertEqual(ride.cadence, null);
+    return true;
+}
+
+(:test)
+function testActivityHeadingRequiresMovingGpsCourse(logger) {
+    var ride = new ActivityRide();
+    var info = new PlaybackTestInfo();
+    info.currentSpeed = 5.0;
+    info.currentHeading = 1.57079632679;
+    ride.update(info, 1);
+    Test.assert(DashMath.absolute(ride.headingDegrees - 90) < 0.001);
+    info.currentSpeed = 0.0;
+    ride.update(info, 2);
+    Test.assertEqual(ride.headingDegrees, null);
+    info.currentSpeed = 5.0;
+    info.currentHeading = null;
+    ride.update(info, 3);
+    Test.assertEqual(ride.headingDegrees, null);
     return true;
 }

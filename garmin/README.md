@@ -2,7 +2,7 @@
 
 This is a **native Monkey C Connect IQ data field targeting Edge 840**, alongside the browser prototype. It uses custom drawing primitives and built-in device fonts. Choose between mock telemetry and host activity data, including FIT playback in Garmin's simulator. It does not fetch weather or record activities itself. This is a development test field, not a validated production ride dashboard.
 
-**Validation status:** SDK 9.3.0 compiled the original native target successfully on macOS. A reported runtime crash from unsupported `Math.abs` calls was fixed. The new activity-data adapter has passed source syntax checks but has **not yet been compiled or run in Garmin's simulator**: cloud SDK downloads remain blocked. Run the local native tests and playback checks below; web test results are not native simulator results.
+**Validation status:** SDK 9.3.0 compiled the original native target successfully on macOS. A reported runtime crash from unsupported `Math.abs` calls was fixed. FIT playback has since been exercised on macOS. The new heading display has passed source syntax checks but has **not yet been compiled or run in Garmin's simulator**: cloud SDK downloads remain blocked. Run the local native tests and playback checks below; web test results are not native simulator results.
 
 ## One-time installation
 
@@ -30,19 +30,21 @@ Select a **single-field/full-page layout** in the simulator's **Data Fields** me
 
 For FIT playback, use `npm run garmin:fit` instead of `garmin:sim`. This builds a separate `DashMax-fit.prg` with activity-data mode forced on; it does not require any application-settings menu or editor. It does not change tracked source or your saved app properties. The generated build copy is ignored under `garmin/bin/fit-project`.
 
-Other demo options are declared in `resources/settings/properties.xml` (theme, mock animation, wind/ride/sensor scenarios). The simulator's **Settings** menu controls the simulated device; it is not an application-properties editor in SDK 9.3. For a simple local demo configuration, stop the app, edit the defaults in that XML file, and rebuild with `garmin:sim`. Existing stored application properties can override changed defaults; do not rely on this method to force FIT playback. Use `garmin:fit` for that.
+Other demo options are declared in `resources/settings/properties.xml` (theme, mock animation, ride/sensor scenarios). The simulator's **Settings** menu controls the simulated device; it is not an application-properties editor in SDK 9.3. For a simple local demo configuration, stop the app, edit the defaults in that XML file, and rebuild with `garmin:sim`. Existing stored application properties can override changed defaults; do not rely on this method to force FIT playback. Use `garmin:fit` for that.
 
-**Native units follow Garmin automatically.** Change **Settings → Units Display → Metric / Statute** in the simulator. DashMax reads `System.getDeviceSettings().distanceUnits` on each redraw: Metric shows km and km/h; Statute shows mi and mph. Current/average speed, distance, and mock wind speed/component all use that selection. Power, heart rate, cadence, and elapsed time are unchanged. There is no separate native imperial toggle; old stored app unit preferences are ignored. The browser prototype retains its own demo unit controls.
+**Native units follow Garmin automatically.** Change **Settings → Units Display → Metric / Statute** in the simulator. DashMax reads `System.getDeviceSettings().distanceUnits` on each redraw: Metric shows km and km/h; Statute shows mi and mph. Current/average speed and distance use that selection. Power, heart rate, cadence, and elapsed time are unchanged. There is no separate native imperial toggle; old stored app unit preferences are ignored. The browser prototype retains its own demo unit controls.
 
 The data field refreshes from the host activity's compute/update cadence rather than starting a background timer. There is no device touchscreen configuration UI in this test field.
 
-The wind dot marks the **source** of ambient wind relative to forward travel (the fixed up arrow). Positive along-track projection is headwind; negative is tailwind. Wind speed and component share the chosen speed units. Mock wind is 12 mph (19.3 km/h); the default oblique component is about 8 mph (12.9 km/h). The power graph has a fixed 0–450 W scale and 90-sample circular buffer. All averages are whole-ride mock values. Paused state freezes the mock clock; the demo does not model Garmin recording semantics.
+The footer now shows **HEADING**: a north-up travel arrow, compass direction, and degrees clockwise from north. In activity mode it uses `Activity.Info.currentHeading` (radians), converted to degrees. When GPS course is missing or current speed is below **1 m/s**, it shows `NO COURSE` instead of a potentially unstable direction. It is not a stationary magnetic compass or a navigation cue. Mock mode points north and hides heading when paused. Wind display, wind calculations, and wind settings have been removed.
+
+The power graph has a fixed 0–450 W scale and a 90-sample circular buffer. Mock averages are whole-ride values; activity mode uses host-supplied averages. Paused mock state freezes the mock clock.
 
 ## Replay a real activity FIT file on macOS
 
 1. Pull the latest source and run `npm run garmin:fit` from the repository root. The terminal must report **Data source: ACTIVITY / FIT PLAYBACK (forced)**.
 2. Select the single-field/full-page layout from **Data Fields**.
-3. No application-settings step is needed. Mock wind, ride-length, sensor-state, and animation settings are ignored in this build. Until activity data arrives, absent metrics display `--`.
+3. No application-settings step is needed. Mock ride-length, sensor-state, and animation settings are ignored in this build. Until activity data arrives, absent metrics display `--`.
 4. In the Garmin simulator, choose **Simulation → FIT Data → Playback File…** and select a recorded cycling activity `.fit` file from your Mac. Start/resume playback using the FIT playback controls. Start the simulated activity timer if needed by your SDK's simulator.
 5. Confirm the values change with the recording. Use the simulator's FIT playback controls to stop/restart the recording. A backwards activity clock or a gap exceeding three seconds resets the power window and graph history.
 
@@ -62,7 +64,7 @@ The terminal must report **Replay cadence divisor: 2**. This divides only cadenc
 
 Current power is a sample mean of available readings in the trailing three activity seconds (a shorter window during startup); samples with missing current power display `--` and create a gap. The graph contains the last 90 accepted updates, approximately 90 seconds at normal 1 Hz playback; it uses a fixed 0–450 W range and clips higher graph points without clamping the hero number. Speed is converted from Garmin's m/s to km/h or mph, distance from metres to km or mi, and elapsed time from milliseconds. Whole-activity averages come only from Garmin's `Activity.Info` average fields, not lap fields or hardcoded demo values. They may be unavailable or reflect the simulator's accumulated playback rather than the FIT file's saved session summary. Elapsed time/distance are the simulated host activity's values, which can differ from the FIT summary after pauses or seeking.
 
-**Wind displays NO DATA in activity mode.** No weather source is configured, and FIT playback is not treated as an ambient wind measurement. FIT playback verifies the data path and rendering, not real-device sensor integration or recording behavior.
+FIT playback verifies the activity data path and rendering, not real-device sensor integration or recording behavior. Heading availability depends on whether the simulator supplies GPS course from the replay. Missing course stays unavailable; the field does not invent a heading from wind or other sensors.
 
 ## Run native unit tests
 
@@ -70,9 +72,9 @@ Current power is a sample mean of available readings in the trailing three activ
 npm run garmin:test
 ```
 
-This builds a separate `garmin/bin/DashMax-tests.prg` with the SDK's test flag and runs the six `(:test)` functions in Garmin's simulator. Check that the Garmin runner reports **six passed tests**: wind math, formatting, activity unit conversion/missing values, three-second power smoothing, playback seek/gap resets, and explicit replay cadence correction. An empty or skipped run is not a pass. Inspect compiler output, simulator console, and memory usage before calling this native target ready.
+This builds a separate `garmin/bin/DashMax-tests.prg` with the SDK's test flag and runs the seven `(:test)` functions in Garmin's simulator. Check that the Garmin runner reports **seven passed tests**: heading math, formatting, activity unit conversion/missing values, three-second power smoothing, playback seek/gap resets, explicit replay cadence correction, and GPS heading availability. An empty or skipped run is not a pass. Inspect compiler output, simulator console, and memory usage before calling this native target ready.
 
-For manual acceptance checks, set animation off and test each ride length in both themes and both unit systems. Inspect the actual field rectangle at native resolution for clipped units, overlapping averages, and long elapsed times. Exercise all wind scenarios and missing/stopped sensor states. Re-enable animation and confirm the graph advances approximately once per second without errors. Built-in device fonts differ from the web font; final typography needs simulator/device review.
+For manual acceptance checks, set animation off and test each ride length in both themes and both unit systems. Inspect the actual field rectangle at native resolution for clipped units, overlapping averages, and long elapsed times. Exercise cardinal headings and missing/stopped sensor states. Re-enable animation and confirm the graph advances approximately once per second without errors. Built-in device fonts differ from the web font; final typography needs simulator/device review.
 
 ## SDK discovery and optional overrides
 

@@ -3,14 +3,6 @@
   <string id="AppName">DashMax Test Field</string>
   <string id="DarkTitle">Dark theme</string>
   <string id="AnimateTitle">Animate mock telemetry</string>
-  <string id="WindTitle">Wind scenario (estimated mock)</string>
-  <string id="Oblique">Oblique headwind</string>
-  <string id="Head">Headwind</string>
-  <string id="Tail">Tailwind</string>
-  <string id="Left">Crosswind from left</string>
-  <string id="Right">Crosswind from right</string>
-  <string id="Unavailable">Unavailable</string>
-  <string id="Stale">Stale estimate</string>
   <string id="RideTitle">Ride length test</string>
   <string id="NormalRide">42.7 km / 1:36:24</string>
   <string id="LongRide">142.7 km / 10:36:24</string>
