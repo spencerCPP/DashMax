@@ -470,6 +470,13 @@ Issues encountered and corrected included:
 - Numeric validation across Garmin JSON numeric types.
 - Simulator output remaining attached to its original process
   output stream.
+- A stack overflow on the Edge when drawing the graph layout. Data
+  fields have a small stack, and the renderer nested too deeply
+  with long argument lists. The design renderer now passes the
+  draw mode and the current cell's box through fields, draws graph
+  cells directly from the row loop, and works values out before
+  the calls that use them. Crash details for a sideloaded build
+  are written to `GARMIN/APPS/LOGS/CIQ_LOG.YML` on the device.
 - Native tests calling `Test.assertEqual` with a null value, which
   raises a type error; null checks now use `Test.assert(x == null)`.
 - Native tests comparing a Float with a Number literal, which are
