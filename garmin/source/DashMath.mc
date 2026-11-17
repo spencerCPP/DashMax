@@ -64,6 +64,10 @@ module DashMath {
         return (feet ? metres * 3.280839895 : metres).format("%.0f");
     }
 
+    function mockHeartRate(t) {
+        return (150 + Math.sin(t * 0.05) * 18 + Math.sin(t * 0.31) * 3).toNumber();
+    }
+
     function mockPower(t) {
         return (
             290 +

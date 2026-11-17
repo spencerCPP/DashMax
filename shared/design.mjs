@@ -12,10 +12,13 @@ export const MAX_CELLS = 2;
 // stats: sample [average, maximum] for metrics that can show an avg/max column.
 // The column is drawn only in full-width cells at least STATS_MIN_HEIGHT tall.
 export const STATS_MIN_HEIGHT = 70;
+// trend: the metric can use the graph layout (value, average and maximum, and
+// a zone-coloured history graph) in full-width cells at least GRAPH_MIN_HEIGHT tall.
+export const GRAPH_MIN_HEIGHT = 110;
 export const METRICS = {
-  power: { name: 'Power', label: 'POWER', short: 'POWER', unit: 'W', sample: '312', zone: true, stats: ['284', '612'] },
+  power: { name: 'Power', label: 'POWER', short: 'POWER', unit: 'W', sample: '312', zone: true, stats: ['284', '612'], trend: true },
   avgPower: { name: 'Average power', label: 'AVG POWER', short: 'AVG PWR', unit: 'W', sample: '284' },
-  heartRate: { name: 'Heart rate', label: 'HEART RATE', short: 'HR', unit: 'bpm', sample: '158', zone: true, stats: ['142', '171'] },
+  heartRate: { name: 'Heart rate', label: 'HEART RATE', short: 'HR', unit: 'bpm', sample: '158', zone: true, stats: ['142', '171'], trend: true },
   avgHeartRate: { name: 'Average heart rate', label: 'AVG HEART RATE', short: 'AVG HR', unit: 'bpm', sample: '142' },
   cadence: { name: 'Cadence', label: 'CADENCE', short: 'CADENCE', unit: 'rpm', sample: '92', stats: ['88', '118'] },
   speed: { name: 'Speed', label: 'SPEED', short: 'SPEED', unit: 'km/h', sample: '26.8', stats: ['24.1', '52.3'] },
@@ -42,6 +45,7 @@ export function designProblem(rows) {
       if (METRICS[cell.metric].fullRow && row.cells.length !== 1) return `${at}: the power graph needs a full row.`;
       if (cell.zone !== undefined && typeof cell.zone !== 'boolean') return `${at} has an invalid zone setting.`;
       if (cell.stats !== undefined && typeof cell.stats !== 'boolean') return `${at} has an invalid avg/max setting.`;
+      if (cell.graph !== undefined && typeof cell.graph !== 'boolean') return `${at} has an invalid graph setting.`;
     }
     total += row.size;
     smallest = Math.min(smallest, row.size);
@@ -66,7 +70,7 @@ export function alignProblem(align) {
   return align === undefined || align === null || align === 'left' || align === 'center' ? null : 'Text alignment must be left or centre.';
 }
 
-// Canonical copy: known keys only; zone and stats kept only where they apply.
+// Canonical copy: known keys only; zone, stats and graph kept only where they apply.
 export function normalizeRows(rows) {
   return rows.map(row => ({
     size: row.size,
@@ -74,6 +78,7 @@ export function normalizeRows(rows) {
       metric: cell.metric,
       ...(cell.zone === true && METRICS[cell.metric].zone ? { zone: true } : {}),
       ...(cell.stats === true && METRICS[cell.metric].stats && row.cells.length === 1 ? { stats: true } : {}),
+      ...(cell.graph === true && METRICS[cell.metric].trend && row.cells.length === 1 ? { graph: true } : {}),
     })),
   }));
 }

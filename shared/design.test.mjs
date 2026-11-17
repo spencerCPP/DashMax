@@ -88,3 +88,13 @@ test('avg/max is kept only on full-width cells of metrics that have it', () => {
   ]);
   assert.ok(designProblem([{ size: 1, cells: [{ metric: 'power', stats: 'yes' }] }]));
 });
+
+test('the graph layout is kept only on full-width power and heart-rate cells', () => {
+  const rows = normalizeRows([
+    { size: 3, cells: [{ metric: 'power', graph: true }] },
+    { size: 3, cells: [{ metric: 'speed', graph: true }] },
+    { size: 2, cells: [{ metric: 'heartRate', graph: true }, { metric: 'cadence' }] },
+  ]);
+  assert.deepEqual(rows.map(row => row.cells[0]), [{ metric: 'power', graph: true }, { metric: 'speed' }, { metric: 'heartRate' }]);
+  assert.ok(designProblem([{ size: 3, cells: [{ metric: 'power', graph: 1 }] }]));
+});

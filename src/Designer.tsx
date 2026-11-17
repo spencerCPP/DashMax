@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { METRICS, PRESETS, MAX_ROWS, WIDTH, HEIGHT, STATS_MIN_HEIGHT, designProblem, zonesProblem, normalizeRows, layout, type Row } from '../shared/design.mjs';
+import { METRICS, PRESETS, MAX_ROWS, WIDTH, HEIGHT, STATS_MIN_HEIGHT, GRAPH_MIN_HEIGHT, designProblem, zonesProblem, normalizeRows, layout, type Row } from '../shared/design.mjs';
 import './designer.css';
 
 type Design = { id: string; revision: number; rows: Row[]; background: number; foreground: number; powerZones?: number[]; align?: string };
@@ -7,6 +7,23 @@ type Design = { id: string; revision: number; rows: Row[]; background: number; f
 const SIZES = [[1, 'S'], [2, 'M'], [3, 'L']] as const;
 // Stand-ins for the preview; on the device the colour follows the rider's Garmin zones.
 const ZONE_PREVIEW: Record<string, string> = { power: '#faca48', heartRate: '#f27716' };
+// Made-up history for the preview graphs: [samples, zone tops, zone colours].
+const TREND: Record<string, [number[], number[], string[]]> = {
+  power: [Array.from({ length: 90 }, (_, i) => Math.round(190 + 105 * Math.sin(i / 15) + 30 * Math.sin(i / 2.7))), [126, 167, 206, 236, 277, 342], ['#a6a6a6', '#3b97f3', '#40c35d', '#faca48', '#f27716', '#e02c2c', '#6f42f3']],
+  heartRate: [Array.from({ length: 90 }, (_, i) => Math.round(118 + i * .6 + 3 * Math.sin(i / 3))), [115, 134, 153, 172], ['#a6a6a6', '#3b97f3', '#40c35d', '#f27716', '#e02c2c']],
+};
+
+function Trend({ metric }: { metric: string }) {
+  const [samples, tops, colors] = TREND[metric];
+  const low = metric === 'power' ? 0 : Math.min(...samples) - 10;
+  const high = Math.max(...samples) + 5;
+  return <svg className="design-trend" viewBox="0 0 90 100" preserveAspectRatio="none">{samples.map((value, i) => {
+    const tall = ((value - low) / (high - low)) * 100;
+    const zone = tops.findIndex(top => value <= top);
+    return <rect key={i} x={i} y={100 - tall} width={1.02} height={tall} fill={colors[zone < 0 ? tops.length : zone]}/>;
+  })}</svg>;
+}
+
 const copyRows = (rows: Row[]) => rows.map(row => ({ size: row.size, cells: row.cells.map(cell => ({ ...cell })) }));
 
 function contrast(color: string) {
@@ -23,6 +40,16 @@ function Preview({ rows, background, foreground, center }: { rows: Row[]; backgr
       const compact = box.height < 70;
       const pad = half ? 8 : 12;
       const valueHeight = box.height - (compact ? 2 : 8) - (compact ? 15 : 18) - (compact ? 2 : 8);
+      const graph = cell.graph === true && metric.trend === true && !half && box.height >= GRAPH_MIN_HEIGHT;
+      if (graph) {
+        const band = box.height - 22 - 4;
+        const tall = band * .45;
+        return <div key={`${r}-${c}`} className="design-cell" style={{ left: cell.left, top: box.top, width: cell.width, height: box.height, padding: '6px 12px 4px', borderTop: r ? '1px solid' : undefined, borderColor: foreground }}>
+          <div className="design-label"><span>{metric.label}</span><span>{metric.unit}</span></div>
+          <div className="design-value" style={{ height: tall }}><strong style={{ fontSize: Math.min(tall * 1.05, 150 / (metric.sample.length * .42)), lineHeight: `${tall}px`, textAlign: center ? 'center' : undefined }}>{metric.sample}</strong><div className="design-stats"><span>AVG {metric.stats![0]}</span><span>MAX {metric.stats![1]}</span></div></div>
+          <Trend metric={cell.metric}/>
+        </div>;
+      }
       const fill = cell.zone ? ZONE_PREVIEW[cell.metric] : undefined;
       // Barlow Condensed digits are roughly 0.42 em wide.
       const stats = cell.stats && metric.stats && !half && box.height >= STATS_MIN_HEIGHT ? metric.stats : null;
@@ -104,6 +131,7 @@ export function Designer() {
                 <select aria-label={`Row ${r + 1} metric ${c + 1}`} value={cell.metric} onChange={e => change(next => { next[r].cells[c] = { metric: e.target.value }; })}>
                   {Object.entries(METRICS).map(([id, metric]) => <option key={id} value={id} disabled={metric.fullRow && row.cells.length > 1}>{metric.name}</option>)}
                 </select>
+                {METRICS[cell.metric].trend && row.cells.length === 1 && <label className="zone-toggle"><input type="checkbox" checked={cell.graph === true} disabled={boxes[r].height < GRAPH_MIN_HEIGHT} onChange={e => change(next => { next[r].cells[c].graph = e.target.checked; })}/> Graph with average and max{boxes[r].height < GRAPH_MIN_HEIGHT && ' (needs a taller row)'}</label>}
                 {METRICS[cell.metric].zone && <label className="zone-toggle"><input type="checkbox" checked={cell.zone === true} onChange={e => change(next => { next[r].cells[c].zone = e.target.checked; })}/> Zone colour</label>}
                 {METRICS[cell.metric].stats && row.cells.length === 1 && <label className="zone-toggle"><input type="checkbox" checked={cell.stats === true} disabled={boxes[r].height < STATS_MIN_HEIGHT} onChange={e => change(next => { next[r].cells[c].stats = e.target.checked; })}/> Average and max{boxes[r].height < STATS_MIN_HEIGHT && ' (row too short)'}</label>}
               </div>)}

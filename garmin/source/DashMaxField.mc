@@ -13,6 +13,7 @@ class DashMaxField extends WatchUi.DataField {
     var _tick = 0;
     var _lastTime = null;
     var _history;
+    var _heartHistory;
     var _head = 0;
     var _width = 246;
     var _height = 322;
@@ -36,8 +37,10 @@ class DashMaxField extends WatchUi.DataField {
             );
         }
         _history = new [90];
+        _heartHistory = new [90];
         for (var i = 0; i < 90; i += 1) {
             _history[i] = DashMath.mockPower(i - 89);
+            _heartHistory[i] = DashMath.mockHeartRate(i - 89);
         }
         _fonts = [
             Graphics.FONT_NUMBER_HOT,
@@ -85,6 +88,9 @@ class DashMaxField extends WatchUi.DataField {
             _head = 0;
             for (var i = 0; i < 90; i += 1) {
                 _history[i] = activity ? null : DashMath.mockPower(i - 89);
+                _heartHistory[i] = activity
+                    ? null
+                    : DashMath.mockHeartRate(i - 89);
             }
         }
         if (activity) {
@@ -92,10 +98,12 @@ class DashMaxField extends WatchUi.DataField {
                 if (_ride.resetHistory) {
                     for (var h = 0; h < 90; h += 1) {
                         _history[h] = null;
+                        _heartHistory[h] = null;
                     }
                     _head = 0;
                 }
                 _history[_head] = _ride.power;
+                _heartHistory[_head] = _ride.heartRate;
                 _head = (_head + 1) % 90;
             }
             return;
@@ -104,6 +112,7 @@ class DashMaxField extends WatchUi.DataField {
             if (setting("Animate") && setting("SensorState") != 2) {
                 _tick += 1;
                 _history[_head] = DashMath.mockPower(_tick);
+                _heartHistory[_head] = DashMath.mockHeartRate(_tick);
                 _head = (_head + 1) % 90;
             }
             _lastTime = now;
@@ -631,6 +640,120 @@ class DashMaxField extends WatchUi.DataField {
         }
     }
 
+    // Filled history graph: one bar per sample, coloured by that sample's
+    // zone, scaled to the range of the samples shown.
+    function drawZoneGraph(dc, history, bounds, floor, left, top, width, height) {
+        var low = null;
+        var high = null;
+        for (var i = 0; i < 90; i += 1) {
+            var sample = history[i];
+            if (sample == null) {
+                continue;
+            }
+            if (low == null || sample < low) {
+                low = sample;
+            }
+            if (high == null || sample > high) {
+                high = sample;
+            }
+        }
+        if (high == null) {
+            return;
+        }
+        // Power is drawn from zero; heart rate from just under its lowest.
+        low = floor ? 0 : low - 10;
+        high = high + 5;
+        if (high - low < 20) {
+            high = low + 20;
+        }
+        // Look each zone's colour up once, not once per bar.
+        var colors = null;
+        if (bounds != null) {
+            var count = bounds.size() - 1;
+            colors = new [count];
+            for (var z = 0; z < count; z += 1) {
+                var entry = ZoneColors.palette(z, count);
+                colors[z] = entry == null ? 0xa6a6a6 : entry[0];
+            }
+        }
+        var bottom = y(top + height);
+        var full = bottom - y(top);
+        for (var b = 0; b < 90; b += 1) {
+            var value = history[(_head + b) % 90];
+            if (value == null) {
+                continue;
+            }
+            var tall = (((value - low) * 1.0) / (high - low) * full).toNumber();
+            tall = tall < 1 ? 1 : tall > full ? full : tall;
+            var zone = colors == null ? null : ZoneColors.index(value, bounds);
+            var from = x(left + (b * (width * 1.0)) / 90);
+            var to = x(left + ((b + 1) * (width * 1.0)) / 90);
+            dc.setColor(
+                zone == null ? 0xa6a6a6 : colors[zone],
+                Graphics.COLOR_TRANSPARENT
+            );
+            dc.fillRectangle(from, bottom - tall, to > from ? to - from : 1, tall);
+        }
+    }
+
+    // A large full-width power or heart-rate cell: value with average and
+    // maximum on top, zone-coloured history graph underneath.
+    function drawGraphCell(dc, left, top, width, height, center, data, stats, history) {
+        var pad = 12;
+        var inner = width - 2 * pad;
+        var labelTop = top + 6;
+        var valueTop = labelTop + 16;
+        var band = top + height - valueTop - 4;
+        var valueHeight = band * 0.45;
+        dc.setColor(_ink, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(
+            x(left + pad),
+            y(labelTop),
+            Graphics.FONT_XTINY,
+            data[0],
+            Graphics.TEXT_JUSTIFY_LEFT
+        );
+        dc.drawText(
+            x(left + width - pad),
+            y(labelTop),
+            Graphics.FONT_XTINY,
+            data[2],
+            Graphics.TEXT_JUSTIFY_RIGHT
+        );
+        var column = 84;
+        var lines = ["AVG " + stats[0], "MAX " + stats[1]];
+        var each = valueHeight / 2.0;
+        for (var s = 0; s < 2; s += 1) {
+            dc.drawText(
+                x(left + width - pad),
+                y(valueTop + s * each),
+                fit(dc, lines[s], column - 6, each),
+                lines[s],
+                Graphics.TEXT_JUSTIFY_RIGHT
+            );
+        }
+        var room = inner - column;
+        var font = fit(dc, data[3], room, valueHeight);
+        var spare = y(valueHeight) - dc.getFontHeight(font);
+        dc.drawText(
+            center ? x(left + pad + room / 2.0) : x(left + pad),
+            y(valueTop) + (spare > 0 ? spare / 2 : 0),
+            font,
+            data[3],
+            center ? Graphics.TEXT_JUSTIFY_CENTER : Graphics.TEXT_JUSTIFY_LEFT
+        );
+        drawZoneGraph(
+            dc,
+            history,
+            data[5],
+            data[1].equals("POWER"),
+            left + pad,
+            valueTop + valueHeight + 3,
+            inner,
+            band - valueHeight - 3
+        );
+    }
+
     // One cell of a designed row. Coordinates are in 246 x 322 units.
     function drawCell(
         dc,
@@ -642,8 +765,28 @@ class DashMaxField extends WatchUi.DataField {
         half,
         center,
         data,
-        stats
+        stats,
+        graphStats
     ) {
+        // The graph layout needs a full-width cell at least 110 px tall.
+        if (cell["graph"] == true && !half && height >= 110) {
+            var id = cell["metric"];
+            var power = id.equals("power");
+            if (power || id.equals("heartRate")) {
+                drawGraphCell(
+                    dc,
+                    left,
+                    top,
+                    width,
+                    height,
+                    center,
+                    data,
+                    graphStats,
+                    power ? _history : _heartHistory
+                );
+                return;
+            }
+        }
         var ink = _ink;
         if (cell["zone"] == true && data[5] != null) {
             var selected = ZoneColors.palette(
@@ -780,6 +923,14 @@ class DashMaxField extends WatchUi.DataField {
                         animate
                     ),
                     cells[c]["stats"] == true
+                        ? cellStats(
+                              cells[c]["metric"],
+                              imperial,
+                              activity,
+                              missing
+                          )
+                        : null,
+                    cells[c]["graph"] == true
                         ? cellStats(
                               cells[c]["metric"],
                               imperial,
