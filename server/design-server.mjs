@@ -22,16 +22,27 @@ export function createDesignServer({ dataDir = path.join(root, '.dashmax-designs
   const file = path.join(dataDir, 'designs.json');
   const designs = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
   const persist = () => { mkdirSync(dataDir, { recursive: true }); writeFileSync(`${file}.tmp`, JSON.stringify(designs, null, 2), { mode: 0o600 }); renameSync(`${file}.tmp`, file); };
+  // Last revision each design's device said it was showing; not persisted.
+  const shown = {};
   const json = (res, status, data) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
   return http.createServer(async (req, res) => {
     try {
-      const pathname = new URL(req.url, 'http://localhost').pathname;
+      const url = new URL(req.url, 'http://localhost');
+      const pathname = url.pathname;
       if (pathname === '/api/health' && req.method === 'GET') return json(res, 200, { ok: true });
       const match = /^\/api\/designs\/([a-f0-9]{12})$/.exec(pathname);
       if (match && req.method === 'GET') {
         const design = designs[match[1]];
         if (!design) return json(res, 404, { error: 'Design not found.' });
-        logger(`${clock()} Design fetched: ${design.id} revision ${design.revision}`);
+        const have = /^\d{1,10}$/.test(url.searchParams.get('have') || '') ? Number(url.searchParams.get('have')) : null;
+        logger(`${clock()} Design fetched: ${design.id} revision ${design.revision}${have === null ? '' : ` (device has ${have})`}`);
+        if (have !== null && have !== shown[design.id]) {
+          shown[design.id] = have;
+          if (have === design.revision) {
+            const waited = design.savedAt ? `, ${Math.floor(Date.now() / 1000) - design.savedAt} s after save` : '';
+            logger(`${clock()} Device showing: ${design.id} revision ${have}${waited}`);
+          }
+        }
         return json(res, 200, design);
       }
       if ((pathname === '/api/designs' && req.method === 'POST') || (match && req.method === 'PUT')) {

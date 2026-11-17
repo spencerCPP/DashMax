@@ -30,3 +30,27 @@ test('design API validates, updates the same ID, and persists across server rest
   } finally { if(server?.listening) await close();rmSync(dir,{recursive:true,force:true}); }
 });
 test('foreground contrast follows light and dark backgrounds',()=>{assert.equal(foregroundFor(0xffffff),0);assert.equal(foregroundFor(0),0xffffff);assert.equal(foregroundFor(0x6f42f3),0xffffff);assert.equal(foregroundFor(0xfaca48),0)});
+
+test('server logs when a device reports the current revision', async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'dashmax-designs-'));
+  const lines = [];
+  const server = createDesignServer({ dataDir: path.join(dir, 'data'), distDir: dir, logger: line => lines.push(line) });
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const design = await (await fetch(`${base}/api/designs`, { method: 'POST', body: JSON.stringify({ fields: ['power', 'speed', 'cadence'], background: 0 }) })).json();
+    const showing = () => lines.filter(line => line.includes('Device showing')).length;
+    await fetch(`${base}/api/designs/${design.id}`);
+    await fetch(`${base}/api/designs/${design.id}?have=abc`);
+    assert.equal(showing(), 0);
+    await fetch(`${base}/api/designs/${design.id}?have=1`);
+    await fetch(`${base}/api/designs/${design.id}?have=1`);
+    assert.equal(showing(), 1);
+    assert.match(lines.find(line => line.includes('Device showing')), /^\d\d:\d\d:\d\d Device showing: [a-f0-9]{12} revision 1, \d+ s after save$/);
+    await fetch(`${base}/api/designs/${design.id}`, { method: 'PUT', body: JSON.stringify({ fields: ['power', 'speed', 'elapsed'], background: 0 }) });
+    await fetch(`${base}/api/designs/${design.id}?have=1`);
+    assert.equal(showing(), 1);
+    await fetch(`${base}/api/designs/${design.id}?have=2`);
+    assert.equal(showing(), 2);
+  } finally { await new Promise(resolve => server.close(resolve)); rmSync(dir, { recursive: true, force: true }); }
+});

@@ -177,7 +177,9 @@ class DesignSync {
         try {
             Communications.makeWebRequest(
                 _server + "/api/designs/" + _id,
-                null,
+                // Tell the server which revision is on screen, so its log
+                // shows when this device picked each save up.
+                config == null ? null : { "have" => config["revision"] },
                 {
                     :method => Communications.HTTP_REQUEST_METHOD_GET,
                     :responseType
@@ -244,6 +246,8 @@ class DesignSync {
         }
         config = data;
         _changedAt = (System.getTimer() / 1000).toNumber();
+        // Check in again straight away so the server learns of this revision.
+        _lastPoll = null;
         try {
             Application.Storage.setValue("designer.lastConfig", {
                 "server" => _server,

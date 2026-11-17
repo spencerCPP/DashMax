@@ -299,6 +299,14 @@ Sync log lines carry the device's clock time, and each applied
 revision reports the seconds since the server saved it, so sync
 latency can be measured from the device log.
 
+The device also sends the revision it is showing with each request
+and checks in again straight after applying a new one. The server
+logs `Device showing: ... revision N, S s after save`, which gives
+the same measurement on the computer's clock without needing the
+device log. On the physical Edge 840 the log file under
+`GARMIN/APPS/LOGS` stayed empty, so this is the working method
+there.
+
 ### Earlier approaches
 
 - Polling every 15 seconds for as long as the field was active

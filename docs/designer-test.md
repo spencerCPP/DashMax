@@ -59,6 +59,14 @@ The native console must report:
 
 Sync messages start with the device's clock time. The trailing figure is the time between the server saving that revision and the device applying it; it compares the computer's clock with the device's, so treat it as accurate to about a second. The server prefixes its own `Design saved` and `Design fetched` lines with the computer's clock time.
 
+The device also tells the server which revision it is showing, and checks in again straight after applying a new one. The designer Terminal then prints, for example:
+
+```text
+14:02:08 Device showing: YOUR_DESIGN_ID revision 4, 4 s after save
+```
+
+This measures save-to-screen time on the computer's clock alone, and works on a physical Edge without reading its log file over USB. It includes the extra check-in request, so it reads a second or two longer than the device's own figure.
+
 The device should show the selected three metrics and background. Until a valid config arrives, it shows a waiting message. The designer server logs each fetched design/revision, which helps diagnose whether requests arrive.
 
 ## 4. Prove changes arrive without rebuilding
