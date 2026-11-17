@@ -368,12 +368,12 @@ setup so output capture can be established.
   minutes in the simulator.
 - Cached design restored on restart, then replaced by a newer
   saved revision.
-- Sync switching off when the activity timer starts.
+- Sync switching off when the activity timer starts, and a design
+  saved mid-ride leaving the screen unchanged.
+- Launcher reporting a passing native test run as passed.
 
 ### Implemented but Still Requiring Validation
 
-- A design save made mid-ride leaving the screen unchanged.
-- Launcher test verdict taken from the runner summary.
 - Garmin zone-array formats and zone-color boundary behavior.
 - Heading behavior across actual device conditions.
 - Physical Edge → paired phone → HTTPS service connectivity.
@@ -429,10 +429,8 @@ See:
 
 ## Recommended Next Steps
 
-1. Validate offline cache recovery and the no-sync-during-ride
-   rule in the simulator.
-2. Test initialization and networking on a physical Edge.
-3. Deploy a stable hosted backend to replace the temporary tunnel.
-4. Expand the web designer using constrained, native-supported
+1. Test initialization and networking on a physical Edge.
+2. Deploy a stable hosted backend to replace the temporary tunnel.
+3. Expand the web designer using constrained, native-supported
    layouts and a versioned shared configuration schema.
-5. Add ownership and read-only device authorization.
+4. Add ownership and read-only device authorization.
