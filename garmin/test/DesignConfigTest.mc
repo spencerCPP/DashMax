@@ -85,6 +85,23 @@ function testDesignRowRules(logger) {
     Test.assert(DesignConfig.rowsProblem(large) == null);
     large.add(designRow(1, ["ascent"]));
     Test.assert(DesignConfig.rowsProblem(large) != null);
+    // Power zones carried by the design, in Garmin's eight-value layout.
+    var zoned = { "powerZones" => [126, 167, 206, 236, 277, 342] };
+    var bounds = DesignConfig.powerBounds(zoned);
+    Test.assertEqual(bounds.size(), 8);
+    Test.assertEqual(bounds[0], 0);
+    Test.assertEqual(bounds[1], 126);
+    Test.assertEqual(bounds[6], 342);
+    Test.assertEqual(ZoneColors.index(126, bounds), 0);
+    Test.assertEqual(ZoneColors.index(127, bounds), 1);
+    Test.assertEqual(ZoneColors.index(267, bounds), 4);
+    Test.assertEqual(ZoneColors.index(343, bounds), 6);
+    Test.assertEqual(ZoneColors.index(2000, bounds), 6);
+    Test.assert(DesignConfig.powerBounds({}) == null);
+    zoned["powerZones"] = [126, 167, 206, 236, 277];
+    Test.assert(DesignConfig.powerBounds(zoned) == null);
+    zoned["powerZones"] = [126, 167, 206, 236, 277, 277];
+    Test.assert(DesignConfig.powerBounds(zoned) == null);
     // Same boxes as layout() in shared/design.test.mjs.
     var rows = [
         designRow(3, ["power"]),

@@ -115,6 +115,9 @@ module DesignConfig {
         if (reason != null) {
             return reason;
         }
+        if (data["powerZones"] != null && powerBounds(data) == null) {
+            return "Invalid power zones";
+        }
         if (!whole(data["background"], 0, 0xffffff)) {
             return "Background is not a whole RGB value";
         }
@@ -140,6 +143,28 @@ module DesignConfig {
             rows[i]["size"] = rows[i]["size"].toNumber();
         }
         return data;
+    }
+    // The design may carry the top of power zones 1 to 6 in watts, for use
+    // when Garmin supplies no power zones. Returns them in Garmin's layout,
+    // [min zone 1, max zone 1, ... max zone 7], or null if absent or invalid.
+    function powerBounds(data) {
+        var zones = data["powerZones"];
+        if (!(zones instanceof Lang.Array) || zones.size() != 6) {
+            return null;
+        }
+        var bounds = [0];
+        for (var i = 0; i < 6; i += 1) {
+            if (
+                !whole(zones[i], 1, 5000) ||
+                (i > 0 && zones[i] <= zones[i - 1])
+            ) {
+                return null;
+            }
+            bounds.add(zones[i].toNumber());
+        }
+        // Zone 7 has no upper limit.
+        bounds.add(100000);
+        return bounds;
     }
     // Top edge of row `index` in 322 px units; index rows.size() is the bottom.
     // Integer maths, matching layout() in shared/design.mjs.

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { designProblem, normalizeRows, layout, upgrade, PRESETS, METRICS } from './design.mjs';
+import { designProblem, zonesProblem, normalizeRows, layout, upgrade, PRESETS, METRICS } from './design.mjs';
 
 const row = (size, ...metrics) => ({ size, cells: metrics.map(metric => ({ metric })) });
 
@@ -54,4 +54,17 @@ test('version 1 designs upgrade to three equal rows', () => {
   assert.deepEqual(upgraded.rows.map(r => r.cells[0].metric), ['power', 'distance', 'elapsed']);
   const current = { version: 2, rows: [] };
   assert.equal(upgrade(current), current);
+});
+
+test('power zones are optional, six rising whole-watt limits', () => {
+  assert.equal(zonesProblem(undefined), null);
+  assert.equal(zonesProblem(null), null);
+  assert.equal(zonesProblem([126, 167, 206, 236, 277, 342]), null);
+  assert.ok(zonesProblem([126, 167, 206, 236, 277]));
+  assert.ok(zonesProblem([126, 167, 206, 236, 277, 277]));
+  assert.ok(zonesProblem([126, 167, 206, 236, 342, 277]));
+  assert.ok(zonesProblem([0, 167, 206, 236, 277, 342]));
+  assert.ok(zonesProblem([126.5, 167, 206, 236, 277, 342]));
+  assert.ok(zonesProblem([126, 167, 206, 236, 277, 6000]));
+  assert.ok(zonesProblem('126,167'));
 });

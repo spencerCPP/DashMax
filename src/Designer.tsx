@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { METRICS, PRESETS, MAX_ROWS, WIDTH, HEIGHT, designProblem, normalizeRows, layout, type Row } from '../shared/design.mjs';
+import { METRICS, PRESETS, MAX_ROWS, WIDTH, HEIGHT, designProblem, zonesProblem, normalizeRows, layout, type Row } from '../shared/design.mjs';
 import './designer.css';
 
-type Design = { id: string; revision: number; rows: Row[]; background: number; foreground: number };
+type Design = { id: string; revision: number; rows: Row[]; background: number; foreground: number; powerZones?: number[] };
 
 const SIZES = [[1, 'S'], [2, 'M'], [3, 'L']] as const;
 // Stand-ins for the preview; on the device the colour follows the rider's Garmin zones.
@@ -39,12 +39,15 @@ function Preview({ rows, background, foreground }: { rows: Row[]; background: st
 export function Designer() {
   const [rows, setRows] = useState<Row[]>(() => copyRows(PRESETS[0].rows));
   const [color, setColor] = useState('#ffffff');
+  // Six text boxes; all empty means the design carries no power zones.
+  const [zoneText, setZoneText] = useState<string[]>(() => Array(6).fill(''));
   const [saved, setSaved] = useState<Design | null>(null);
   const [saving, setSaving] = useState(false), [error, setError] = useState(''), [copied, setCopied] = useState(false);
   const foreground = contrast(color);
   const background = parseInt(color.slice(1), 16);
-  const problem = designProblem(rows);
-  const dirty = !saved || saved.background !== background || JSON.stringify(saved.rows) !== JSON.stringify(problem ? rows : normalizeRows(rows));
+  const powerZones = zoneText.every(text => text.trim() === '') ? undefined : zoneText.map(text => (/^\d+$/.test(text.trim()) ? Number(text.trim()) : NaN));
+  const problem = designProblem(rows) || zonesProblem(powerZones);
+  const dirty = !saved || saved.background !== background || JSON.stringify(saved.rows) !== JSON.stringify(designProblem(rows) ? rows : normalizeRows(rows)) || JSON.stringify(saved.powerZones ?? null) !== JSON.stringify(powerZones ?? null);
   // Applies an edit to a copy; edits that would break the layout rules are ignored.
   const change = (edit: (next: Row[]) => void) => { const next = copyRows(rows); edit(next); if (!designProblem(next)) setRows(next); };
   const allowed = (edit: (next: Row[]) => void) => { const next = copyRows(rows); edit(next); return !designProblem(next); };
@@ -56,7 +59,7 @@ export function Designer() {
     void fetch(`/api/designs/${id}`).then(async response => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      if (active) { setSaved(data); setRows(copyRows(data.rows)); setColor('#' + data.background.toString(16).padStart(6, '0')); }
+      if (active) { setSaved(data); setRows(copyRows(data.rows)); setColor('#' + data.background.toString(16).padStart(6, '0')); setZoneText(data.powerZones ? data.powerZones.map(String) : Array(6).fill('')); }
     }).catch(e => { if (active) setError(e.message); });
     return () => { active = false; };
   }, []);
@@ -64,7 +67,7 @@ export function Designer() {
   async function save() {
     setSaving(true); setError(''); setCopied(false);
     try {
-      const response = await fetch(saved ? `/api/designs/${saved.id}` : '/api/designs', { method: saved ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: normalizeRows(rows), background }) });
+      const response = await fetch(saved ? `/api/designs/${saved.id}` : '/api/designs', { method: saved ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: normalizeRows(rows), background, powerZones }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not save design.');
       setSaved(data); setRows(copyRows(data.rows));
@@ -107,6 +110,9 @@ export function Designer() {
           </div>)}
           <button className="add-row" disabled={!allowed(next => { next.push({ size: 1, cells: [{ metric: 'speed' }] }); })} onClick={() => change(next => { next.push({ size: 1, cells: [{ metric: 'speed' }] }); })}>+ Add row</button>
           <p className="row-hint">Buttons grey out when a change would make a row too short to read on the device.</p>
+          <h2>Power zones <span className="optional">optional</span></h2>
+          <p className="row-hint">Enter the top of zones 1 to 6 in watts, as shown in Garmin Connect. Zone 7 is everything above. The device uses its own Garmin power zones when it can read them, and these only when it cannot.</p>
+          <div className="zone-inputs">{zoneText.map((text, z) => <label key={z}>Z{z + 1} up to<input aria-label={`Top of power zone ${z + 1} in watts`} inputMode="numeric" value={text} placeholder="W" onChange={e => setZoneText(zoneText.map((old, i) => (i === z ? e.target.value : old)))}/></label>)}</div>
           <label className="designer-color">Background <span><input aria-label="Background color" type="color" value={color} onChange={e => setColor(e.target.value)}/><code>{color.toUpperCase()}</code></span></label>
           <button className="save-design" disabled={saving || !dirty || problem !== null} onClick={save}>{saving ? 'Saving…' : saved ? 'Save changes' : 'Save design'}</button>
           {(error || problem) && <p role="alert">{error || problem}</p>}

@@ -47,6 +47,16 @@ export function designProblem(rows) {
   return null;
 }
 
+// Optional power zones: the top of zones 1 to 6 in watts, lowest first. Zone 7
+// is everything above. Used by the device only when Garmin supplies none.
+export function zonesProblem(zones) {
+  if (zones === undefined || zones === null) return null;
+  if (!Array.isArray(zones) || zones.length !== 6) return 'Enter all six power zone limits, or clear them all.';
+  if (!zones.every(watts => Number.isInteger(watts) && watts >= 1 && watts <= 5000)) return 'Power zone limits must be whole watts between 1 and 5000.';
+  if (zones.some((watts, index) => index > 0 && watts <= zones[index - 1])) return 'Each power zone limit must be higher than the one before.';
+  return null;
+}
+
 // Canonical copy: known keys only, zone kept only where it applies.
 export function normalizeRows(rows) {
   return rows.map(row => ({

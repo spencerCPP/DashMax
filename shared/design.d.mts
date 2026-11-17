@@ -10,6 +10,7 @@ export const MAX_CELLS: number;
 export const METRICS: Record<string, Metric>;
 export const PRESETS: { id: string; name: string; rows: Row[] }[];
 export function designProblem(rows: unknown): string | null;
+export function zonesProblem(zones: unknown): string | null;
 export function normalizeRows(rows: Row[]): Row[];
 export function layout(rows: Row[]): Box[];
 export function upgrade<T>(design: T): T;

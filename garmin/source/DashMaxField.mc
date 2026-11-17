@@ -443,7 +443,18 @@ class DashMaxField extends WatchUi.DataField {
                     : animate
                       ? DashMath.mockPower(_tick)
                       : 312;
-            return ["POWER", "POWER", "W", number(watts, ""), watts, _zones.power];
+            // Garmin's own zones win; the design's are the fallback for
+            // devices where Garmin returns none.
+            return [
+                "POWER",
+                "POWER",
+                "W",
+                number(watts, ""),
+                watts,
+                _zones.power != null
+                    ? _zones.power
+                    : DesignConfig.powerBounds(_design.config),
+            ];
         }
         if (id.equals("avgPower")) {
             var average = activity ? _ride.averagePower : missing ? null : 284;

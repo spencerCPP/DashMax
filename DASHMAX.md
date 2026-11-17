@@ -192,6 +192,29 @@ device's elevation unit setting, which is separate from distance.
 Zone-coloured cells use the rider's Garmin zones, as on the
 original dashboard. The web preview shows example colours.
 
+### Power zones on a physical Edge
+
+On the Edge 840, `UserProfile.getPowerZones()` returns nothing even
+though the rider's power zones are set in Garmin Connect. DashMax
+asked under the cycling sport, the generic sport and the active
+profile's sport (which reported cycling); all returned nothing. The
+simulator returns zones for the same call, and heart-rate zones
+work on the device. Other developers report the same on Edge 1040,
+1050 and 850 on Garmin's forum, with no confirmed fix.
+
+So the designer has an optional Power zones section: the top of
+zones 1 to 6 in watts, saved with the design as `powerZones`. The
+device uses Garmin's own zones whenever Garmin supplies them, and
+the design's only when it does not. With neither, power stays
+uncoloured. FTP percentages are still never substituted: the
+rider's real limits do not sit on the standard percentages.
+
+The cost is that a change to zones in Garmin Connect must be
+repeated in the designer until Garmin's call works on the Edge.
+
+The device reports what Garmin returned for power zones with each
+design request, and the server logs it as `Device power zones:`.
+
 There is one design per device. Multiple pages or profiles are not
 built.
 
@@ -441,13 +464,16 @@ setup so output capture can be established.
 - Sync switching off when the activity timer starts, and a design
   saved mid-ride leaving the screen unchanged.
 - Launcher reporting a passing native test run as passed.
+- Row-builder layout, new metrics and heart-rate zone colour drawn
+  on a physical Edge 840 from a design fetched through the phone.
 
 ### Implemented but Still Requiring Validation
 
 - Paced pre-ride polling (30 seconds, 5 seconds after a change),
   which replaced the startup window.
 - Row-builder rendering on the device: text sizing in short and
-  half-width cells, zone-coloured cells, and the graph row.
+  half-width cells and the graph row.
+- Power cell colouring on the Edge from the designer's zones.
 - Computed grade against Garmin's own grade field.
 - Garmin zone-array formats and zone-color boundary behavior.
 - Heading behavior across actual device conditions.
