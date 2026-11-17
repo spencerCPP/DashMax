@@ -19,7 +19,7 @@ test('design API validates, updates the same ID, and persists across server rest
     assert.equal((await fetch(`${base}/designer`)).status,200);
     for(const body of [{fields:['power','power','distance'],background:0},{fields:['power'],background:0},{fields:['power','heartRate','unknown'],background:0},{fields:['power','heartRate','distance'],background:-1},{fields:['power','heartRate','distance'],background:0x1000000}]) assert.equal((await request(`${base}/api/designs`,'POST',body)).status,400);
     const response=await request(`${base}/api/designs`,'POST',{fields:['power','heartRate','distance'],background:0xffffff});
-    assert.equal(response.status,201);const initial=await response.json();assert.match(initial.id,/^[a-f0-9]{12}$/);assert.equal(initial.foreground,0);
+    assert.equal(response.status,201);const initial=await response.json();assert.match(initial.id,/^[a-f0-9]{12}$/);assert.equal(initial.foreground,0);assert.ok(Number.isInteger(initial.savedAt)&&Math.abs(initial.savedAt-Date.now()/1000)<5);
     const updated=await (await request(`${base}/api/designs/${initial.id}`,'PUT',{fields:['cadence','speed','elapsed'],background:0})).json();
     assert.equal(updated.id,initial.id);assert.equal(updated.revision,2);assert.equal(updated.foreground,0xffffff);
     assert.equal((await request(`${base}/api/designs/${initial.id}`,'PUT',{fields:[],background:0})).status,400);

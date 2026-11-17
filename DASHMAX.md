@@ -185,6 +185,7 @@ Each saved design has:
 - Three metric identifiers.
 - A background RGB value.
 - A contrasting foreground RGB value.
+- The time it was saved, in epoch seconds.
 
 Example:
 
@@ -194,7 +195,8 @@ Example:
       "revision": 2,
       "fields": ["power", "distance", "elapsed"],
       "background": 16776960,
-      "foreground": 0
+      "foreground": 0,
+      "savedAt": 1794873727
     }
 
 Designs persist locally in the ignored directory:
@@ -292,6 +294,10 @@ physical Edge.
 
 DashMax can display before the rider presses Start; activity
 recording does not need to be running.
+
+Sync log lines carry the device's clock time, and each applied
+revision reports the seconds since the server saved it, so sync
+latency can be measured from the device log.
 
 ### Earlier approaches
 

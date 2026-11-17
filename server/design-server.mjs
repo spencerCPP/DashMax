@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const metrics = new Set(['power', 'heartRate', 'distance', 'cadence', 'speed', 'elapsed']);
+// Local wall-clock time, to line server logs up against device logs.
+const clock = () => new Date().toTimeString().slice(0, 8);
 export function validateSelection(value) {
   if (!value || !Array.isArray(value.fields) || value.fields.length !== 3 || new Set(value.fields).size !== 3 || !value.fields.every(field => metrics.has(field))) throw new Error('Choose exactly three different supported metrics.');
   if (!Number.isInteger(value.background) || value.background < 0 || value.background > 0xffffff) throw new Error('Background must be an RGB color.');
@@ -29,7 +31,7 @@ export function createDesignServer({ dataDir = path.join(root, '.dashmax-designs
       if (match && req.method === 'GET') {
         const design = designs[match[1]];
         if (!design) return json(res, 404, { error: 'Design not found.' });
-        logger(`Design fetched: ${design.id} revision ${design.revision}`);
+        logger(`${clock()} Design fetched: ${design.id} revision ${design.revision}`);
         return json(res, 200, design);
       }
       if ((pathname === '/api/designs' && req.method === 'POST') || (match && req.method === 'PUT')) {
@@ -40,10 +42,10 @@ export function createDesignServer({ dataDir = path.join(root, '.dashmax-designs
         const id = match ? match[1] : randomBytes(6).toString('hex');
         if (match && !designs[id]) return json(res, 404, { error: 'Design not found.' });
         const previous = designs[id];
-        const design = { version: 1, id, revision: (previous?.revision || 0) + 1, ...selection, foreground: foregroundFor(selection.background) };
+        const design = { version: 1, id, revision: (previous?.revision || 0) + 1, ...selection, foreground: foregroundFor(selection.background), savedAt: Math.floor(Date.now() / 1000) };
         designs[id] = design;
         try { persist(); } catch (error) { if (previous) designs[id] = previous; else delete designs[id]; throw error; }
-        logger(`Design saved: ${id} revision ${design.revision}`);
+        logger(`${clock()} Design saved: ${id} revision ${design.revision}`);
         return json(res, match ? 200 : 201, design);
       }
       if (pathname.startsWith('/api/')) return json(res, 404, { error: 'Endpoint not found.' });

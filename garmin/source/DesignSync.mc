@@ -4,6 +4,7 @@ using Toybox.Communications;
 using Toybox.Lang;
 using Toybox.PersistedContent;
 using Toybox.System;
+using Toybox.Time;
 using Toybox.WatchUi;
 
 module DesignConfig {
@@ -122,6 +123,21 @@ class DesignSync {
     var _busy = false;
     var _riding = false;
 
+    // Prefix sync messages with the device's wall-clock time so device logs
+    // can be lined up against the server's.
+    function log(message) {
+        var clock = System.getClockTime();
+        System.println(
+            clock.hour.format("%02d") +
+                ":" +
+                clock.min.format("%02d") +
+                ":" +
+                clock.sec.format("%02d") +
+                " " +
+                message
+        );
+    }
+
     function initialize(server, id) {
         _server = server;
         _id = id;
@@ -134,10 +150,10 @@ class DesignSync {
                 DesignConfig.valid(cached["config"])
             ) {
                 config = DesignConfig.normalize(cached["config"]);
-                System.println("Loaded cached design " + id);
+                log("Loaded cached design " + id);
             }
         } catch (error) {
-            System.println("No usable cached design");
+            log("No usable cached design");
         }
     }
 
@@ -145,7 +161,7 @@ class DesignSync {
     // ride is in progress, and a response that lands after Start is dropped.
     function poll(riding) {
         if (riding && !_riding) {
-            System.println("Design sync off while a ride is in progress");
+            log("Design sync off while a ride is in progress");
         }
         _riding = riding;
         var now = (System.getTimer() / 1000).toNumber();
@@ -172,7 +188,7 @@ class DesignSync {
             );
         } catch (error) {
             _busy = false;
-            System.println(
+            log(
                 "Design request could not start; keeping cached screen"
             );
         }
@@ -190,13 +206,13 @@ class DesignSync {
     ) as Void {
         _busy = false;
         if (_riding) {
-            System.println(
+            log(
                 "Design response ignored during ride; keeping current screen"
             );
             return;
         }
         if (code != 200) {
-            System.println(
+            log(
                 "Design HTTP request failed: " +
                     code.toString() +
                     "; keeping cached screen"
@@ -205,7 +221,7 @@ class DesignSync {
         }
         var reason = DesignConfig.problem(data);
         if (reason != null) {
-            System.println(
+            log(
                 "Design rejected: " + reason + "; keeping cached screen"
             );
             return;
@@ -214,7 +230,7 @@ class DesignSync {
             return;
         }
         if (!DesignConfig.sameString(data["id"], _id)) {
-            System.println(
+            log(
                 "Design rejected: ID mismatch; expected " +
                     _id +
                     ", received " +
@@ -235,15 +251,23 @@ class DesignSync {
                 "config" => data,
             });
         } catch (error) {
-            System.println(
+            log(
                 "Design applied, but offline cache could not be saved"
             );
         }
-        System.println(
+        // savedAt is the server's save time in epoch seconds. The difference
+        // spans two clocks, so it is only accurate to about a second.
+        var delay = "";
+        if (DesignConfig.whole(data["savedAt"], 1, 2147483647)) {
+            var seconds = Time.now().value() - data["savedAt"].toNumber();
+            delay = ", " + seconds.toString() + " s after save";
+        }
+        log(
             "Applied web design " +
                 _id +
                 " revision " +
-                data["revision"].toString()
+                data["revision"].toString() +
+                delay
         );
         WatchUi.requestUpdate();
     }

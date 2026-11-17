@@ -54,8 +54,10 @@ The field calls `Communications.makeWebRequest` with the `Communications` permis
 The native console must report:
 
 ```text
-Applied web design YOUR_DESIGN_ID revision 1
+14:02:07 Applied web design YOUR_DESIGN_ID revision 1, 3 s after save
 ```
+
+Sync messages start with the device's clock time. The trailing figure is the time between the server saving that revision and the device applying it; it compares the computer's clock with the device's, so treat it as accurate to about a second. The server prefixes its own `Design saved` and `Design fetched` lines with the computer's clock time.
 
 The device should show the selected three metrics and background. Until a valid config arrives, it shows a waiting message. The designer server logs each fetched design/revision, which helps diagnose whether requests arrive.
 
