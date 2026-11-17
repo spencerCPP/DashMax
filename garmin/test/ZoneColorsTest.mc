@@ -3,9 +3,9 @@ using Toybox.Test;
 (:test)
 function testGarminZoneBoundaries(logger) {
     var hr = [100, 120, 140, 160, 180, 200];
-    Test.assertEqual(ZoneColors.index(null, hr), null);
-    Test.assertEqual(ZoneColors.index(0, hr), null);
-    Test.assertEqual(ZoneColors.index(99, hr), null);
+    Test.assert(ZoneColors.index(null, hr) == null);
+    Test.assert(ZoneColors.index(0, hr) == null);
+    Test.assert(ZoneColors.index(99, hr) == null);
     Test.assertEqual(ZoneColors.index(100, hr), 0);
     Test.assertEqual(ZoneColors.index(119, hr), 0);
     Test.assertEqual(ZoneColors.index(120, hr), 0);
@@ -27,13 +27,13 @@ function testGarminZoneBoundaries(logger) {
 
 (:test)
 function testUnavailableZonesStayNeutral(logger) {
-    Test.assertEqual(ZoneColors.index(150, null), null);
-    Test.assertEqual(ZoneColors.index(150, []), null);
-    Test.assertEqual(ZoneColors.index(150, [100, 100, 150]), null);
-    Test.assertEqual(ZoneColors.index(150, [100, null, 200]), null);
-    Test.assertEqual(ZoneColors.palette(null, 5), null);
-    Test.assertEqual(ZoneColors.palette(0, 4), null);
-    Test.assertEqual(ZoneColors.palette(7, 7), null);
+    Test.assert(ZoneColors.index(150, null) == null);
+    Test.assert(ZoneColors.index(150, []) == null);
+    Test.assert(ZoneColors.index(150, [100, 100, 150]) == null);
+    Test.assert(ZoneColors.index(150, [100, null, 200]) == null);
+    Test.assert(ZoneColors.palette(null, 5) == null);
+    Test.assert(ZoneColors.palette(0, 4) == null);
+    Test.assert(ZoneColors.palette(7, 7) == null);
     Test.assert(ZoneColors.palette(0, 5) != null);
     Test.assert(ZoneColors.palette(6, 7) != null);
     return true;

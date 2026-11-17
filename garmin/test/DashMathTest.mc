@@ -3,7 +3,7 @@ using Toybox.Math;
 
 (:test)
 function testHeadingDirections(logger) {
-    Test.assertEqual(DashMath.headingDegrees(null), null);
+    Test.assert(DashMath.headingDegrees(null) == null);
     Test.assert(
         DashMath.absolute(DashMath.headingDegrees(Math.PI / 2) - 90) < 0.001
     );

@@ -30,10 +30,10 @@ function testPlaybackUnitsAndMissingData(logger) {
     Test.assert(DashMath.absolute(ride.distanceKm - 142.7) < 0.001);
     Test.assertEqual(ride.elapsedSeconds, 38184);
     Test.assertEqual(ride.heartRate, 158);
-    Test.assertEqual(ride.cadence, 0);
-    Test.assertEqual(ride.power, null);
-    Test.assertEqual(ride.averagePower, null);
-    Test.assertEqual(ride.averageHeartRate, null);
+    Test.assertEqual(ride.cadence, 0.0);
+    Test.assert(ride.power == null);
+    Test.assert(ride.averagePower == null);
+    Test.assert(ride.averageHeartRate == null);
     return true;
 }
 
@@ -59,7 +59,7 @@ function testPlaybackThreeSecondPower(logger) {
     info.elapsedTime = 5000;
     info.currentPower = null;
     ride.update(info, 0);
-    Test.assertEqual(ride.power, null);
+    Test.assert(ride.power == null);
     return true;
 }
 
@@ -106,7 +106,7 @@ function testExplicitReplayCadenceCorrection(logger) {
     Test.assertEqual(ride.cadence, 0.0);
     info.currentCadence = null;
     ride.update(info, 0);
-    Test.assertEqual(ride.cadence, null);
+    Test.assert(ride.cadence == null);
     return true;
 }
 
@@ -120,10 +120,10 @@ function testActivityHeadingRequiresMovingGpsCourse(logger) {
     Test.assert(DashMath.absolute(ride.headingDegrees - 90) < 0.001);
     info.currentSpeed = 0.0;
     ride.update(info, 2);
-    Test.assertEqual(ride.headingDegrees, null);
+    Test.assert(ride.headingDegrees == null);
     info.currentSpeed = 5.0;
     info.currentHeading = null;
     ride.update(info, 3);
-    Test.assertEqual(ride.headingDegrees, null);
+    Test.assert(ride.headingDegrees == null);
     return true;
 }
