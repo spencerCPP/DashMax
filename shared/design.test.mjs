@@ -74,3 +74,17 @@ test('alignment is optional, left or centre', () => {
   for (const align of ['right', 'centre', 1, true]) assert.ok(alignProblem(align));
   for (const preset of PRESETS) assert.equal(alignProblem(preset.align), null);
 });
+
+test('avg/max is kept only on full-width cells of metrics that have it', () => {
+  const rows = normalizeRows([
+    { size: 3, cells: [{ metric: 'power', zone: true, stats: true }] },
+    { size: 2, cells: [{ metric: 'heartRate', stats: true }, { metric: 'cadence', stats: true }] },
+    { size: 2, cells: [{ metric: 'grade', stats: true }] },
+  ]);
+  assert.deepEqual(rows, [
+    { size: 3, cells: [{ metric: 'power', zone: true, stats: true }] },
+    { size: 2, cells: [{ metric: 'heartRate' }, { metric: 'cadence' }] },
+    { size: 2, cells: [{ metric: 'grade' }] },
+  ]);
+  assert.ok(designProblem([{ size: 1, cells: [{ metric: 'power', stats: 'yes' }] }]));
+});

@@ -1,12 +1,13 @@
-export type Cell = { metric: string; zone?: boolean };
+export type Cell = { metric: string; zone?: boolean; stats?: boolean };
 export type Row = { size: number; cells: Cell[] };
-export type Metric = { name: string; label: string; short: string; unit: string; sample: string; zone?: boolean; fullRow?: boolean };
+export type Metric = { name: string; label: string; short: string; unit: string; sample: string; zone?: boolean; fullRow?: boolean; stats?: string[] };
 export type Box = { top: number; height: number; cells: (Cell & { left: number; width: number })[] };
 export const SCHEMA: number;
 export const WIDTH: number;
 export const HEIGHT: number;
 export const MAX_ROWS: number;
 export const MAX_CELLS: number;
+export const STATS_MIN_HEIGHT: number;
 export const METRICS: Record<string, Metric>;
 export const PRESETS: { id: string; name: string; rows: Row[]; align?: string }[];
 export function designProblem(rows: unknown): string | null;

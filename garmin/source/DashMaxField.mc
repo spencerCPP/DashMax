@@ -571,6 +571,46 @@ class DashMaxField extends WatchUi.DataField {
         return ["", "", "", "--", null, null];
     }
 
+    // [average, maximum] as text for metrics Garmin tracks both for, else null.
+    function cellStats(id, imperial, activity, missing) {
+        if (id.equals("power")) {
+            return activity
+                ? [number(_ride.averagePower, ""), number(_ride.maxPower, "")]
+                : missing
+                  ? ["--", "--"]
+                  : ["284", "612"];
+        }
+        if (id.equals("heartRate")) {
+            return activity
+                ? [
+                      number(_ride.averageHeartRate, ""),
+                      number(_ride.maxHeartRate, ""),
+                  ]
+                : missing
+                  ? ["--", "--"]
+                  : ["142", "171"];
+        }
+        if (id.equals("cadence")) {
+            return activity
+                ? [
+                      number(_ride.averageCadence, ""),
+                      number(_ride.maxCadence, ""),
+                  ]
+                : missing
+                  ? ["--", "--"]
+                  : ["88", "118"];
+        }
+        if (id.equals("speed")) {
+            return activity
+                ? [
+                      speed(_ride.averageSpeedKmh, imperial),
+                      speed(_ride.maxSpeedKmh, imperial),
+                  ]
+                : [speed(24.1, imperial), speed(52.3, imperial)];
+        }
+        return null;
+    }
+
     function drawGraph(dc, left, top, width, height) {
         dc.setColor(_ink, Graphics.COLOR_TRANSPARENT);
         for (var i = 1; i < 90; i += 1) {
@@ -592,7 +632,18 @@ class DashMaxField extends WatchUi.DataField {
     }
 
     // One cell of a designed row. Coordinates are in 246 x 322 units.
-    function drawCell(dc, cell, left, top, width, height, half, center, data) {
+    function drawCell(
+        dc,
+        cell,
+        left,
+        top,
+        width,
+        height,
+        half,
+        center,
+        data,
+        stats
+    ) {
         var ink = _ink;
         if (cell["zone"] == true && data[5] != null) {
             var selected = ZoneColors.palette(
@@ -658,10 +709,30 @@ class DashMaxField extends WatchUi.DataField {
             drawGraph(dc, left + pad, valueTop, inner, valueHeight);
             return;
         }
-        var font = fit(dc, data[3], inner, valueHeight);
+        // Average and maximum stack at the right of cells with room for them:
+        // full-width and at least 70 px tall.
+        var column = 0;
+        if (stats != null && !half && !compact) {
+            column = 84;
+            var lines = ["AVG " + stats[0], "MAX " + stats[1]];
+            var half_ = valueHeight / 2.0;
+            for (var s = 0; s < 2; s += 1) {
+                var small = fit(dc, lines[s], column - 6, half_);
+                var gap = y(half_) - dc.getFontHeight(small);
+                dc.drawText(
+                    x(left + width - pad),
+                    y(valueTop + s * half_) + (gap > 0 ? gap / 2 : 0),
+                    small,
+                    lines[s],
+                    Graphics.TEXT_JUSTIFY_RIGHT
+                );
+            }
+        }
+        var room = inner - column;
+        var font = fit(dc, data[3], room, valueHeight);
         var spare = y(valueHeight) - dc.getFontHeight(font);
         dc.drawText(
-            center ? x(left + width / 2.0) : x(left + pad),
+            center ? x(left + pad + room / 2.0) : x(left + pad),
             y(valueTop) + (spare > 0 ? spare / 2 : 0),
             font,
             data[3],
@@ -707,7 +778,15 @@ class DashMaxField extends WatchUi.DataField {
                         missing,
                         stopped,
                         animate
-                    )
+                    ),
+                    cells[c]["stats"] == true
+                        ? cellStats(
+                              cells[c]["metric"],
+                              imperial,
+                              activity,
+                              missing
+                          )
+                        : null
                 );
             }
             // Dividers go on last so zone fills do not cover them.

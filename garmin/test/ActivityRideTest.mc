@@ -13,6 +13,11 @@ class PlaybackTestInfo {
     var elapsedTime = null;
     var altitude = null;
     var totalAscent = null;
+    var maxPower = null;
+    var maxHeartRate = null;
+    var maxSpeed = null;
+    var averageCadence = null;
+    var maxCadence = null;
     function initialize() {}
 }
 
@@ -36,6 +41,25 @@ function testPlaybackUnitsAndMissingData(logger) {
     Test.assert(ride.power == null);
     Test.assert(ride.averagePower == null);
     Test.assert(ride.averageHeartRate == null);
+    // Ride maximums and average cadence, for the avg/max column.
+    Test.assert(ride.maxPower == null);
+    Test.assert(ride.maxCadence == null);
+    info.maxPower = 612;
+    info.maxHeartRate = 171;
+    info.maxSpeed = 15.0;
+    info.averageCadence = 88;
+    info.maxCadence = 118;
+    info.elapsedTime = 38185000;
+    ride.update(info, 0);
+    Test.assertEqual(ride.maxPower, 612);
+    Test.assertEqual(ride.maxHeartRate, 171);
+    Test.assert(DashMath.absolute(ride.maxSpeedKmh - 54.0) < 0.001);
+    Test.assertEqual(ride.averageCadence, 88.0);
+    Test.assertEqual(ride.maxCadence, 118.0);
+    ride.cadenceDivisor = 2;
+    info.elapsedTime = 38186000;
+    ride.update(info, 0);
+    Test.assertEqual(ride.maxCadence, 59.0);
     return true;
 }
 

@@ -167,7 +167,9 @@ The web designer lets a user:
    rows, Big two, or Data dense.
 2. Stack one to six rows, each small, medium or large.
 3. Put one or two metrics in each row.
-4. Turn on zone colouring for power and heart-rate cells.
+4. Turn on zone colouring for power and heart-rate cells, and an
+   average-and-max column for power, heart rate, cadence or speed
+   in full-width rows at least 70 px tall.
    Choose left-aligned or centred text for the whole screen.
 5. Select a background color.
 6. Save, then edit and save that same design again.
@@ -493,6 +495,7 @@ setup so output capture can be established.
   which replaced the startup window.
 - Row-builder rendering on the device: text sizing in short and
   half-width cells and the graph row.
+- Centred text and the average-and-max column on the device.
 - Power cell colouring on the Edge from Garmin's FTP, and from the
   designer's zones when FTP is unavailable.
 - Computed grade against Garmin's own grade field.

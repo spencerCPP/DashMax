@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { METRICS, PRESETS, MAX_ROWS, WIDTH, HEIGHT, designProblem, zonesProblem, normalizeRows, layout, type Row } from '../shared/design.mjs';
+import { METRICS, PRESETS, MAX_ROWS, WIDTH, HEIGHT, STATS_MIN_HEIGHT, designProblem, zonesProblem, normalizeRows, layout, type Row } from '../shared/design.mjs';
 import './designer.css';
 
 type Design = { id: string; revision: number; rows: Row[]; background: number; foreground: number; powerZones?: number[]; align?: string };
@@ -25,12 +25,13 @@ function Preview({ rows, background, foreground, center }: { rows: Row[]; backgr
       const valueHeight = box.height - (compact ? 2 : 8) - (compact ? 15 : 18) - (compact ? 2 : 8);
       const fill = cell.zone ? ZONE_PREVIEW[cell.metric] : undefined;
       // Barlow Condensed digits are roughly 0.42 em wide.
-      const size = Math.max(11, Math.min(valueHeight * 1.05, (cell.width - 2 * pad) / (Math.max(metric.sample.length, 1) * .42)));
+      const stats = cell.stats && metric.stats && !half && box.height >= STATS_MIN_HEIGHT ? metric.stats : null;
+      const size = Math.max(11, Math.min(valueHeight * 1.05, (cell.width - 2 * pad - (stats ? 84 : 0)) / (Math.max(metric.sample.length, 1) * .42)));
       return <div key={`${r}-${c}`} className="design-cell" style={{ left: cell.left, top: box.top, width: cell.width, height: box.height, padding: `${compact ? 2 : 8}px ${pad}px`, background: fill, color: fill ? '#000000' : undefined, borderTop: r ? '1px solid' : undefined, borderLeft: c ? '1px solid' : undefined, borderColor: foreground }}>
         <div className="design-label">{center ? <span>{half ? metric.short : metric.label} {metric.unit}</span> : <><span>{half ? metric.short : metric.label}</span><span>{metric.unit}</span></>}</div>
         {cell.metric === 'graph'
           ? <svg className="design-graph" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline points="0,9 8,7 16,10 24,6 32,8 40,5 48,9 56,7 64,11 72,6 80,8 88,5 100,7" fill="none" stroke="currentColor" strokeWidth="1" vectorEffect="non-scaling-stroke"/></svg>
-          : <strong style={{ fontSize: size, height: valueHeight, lineHeight: `${valueHeight}px` }}>{metric.sample}</strong>}
+          : <div className="design-value"><strong style={{ fontSize: size, height: valueHeight, lineHeight: `${valueHeight}px` }}>{metric.sample}</strong>{stats && <div className="design-stats"><span>AVG {stats[0]}</span><span>MAX {stats[1]}</span></div>}</div>}
       </div>;
     }))}
   </div>;
@@ -48,9 +49,10 @@ export function Designer() {
   const background = parseInt(color.slice(1), 16);
   const powerZones = zoneText.every(text => text.trim() === '') ? undefined : zoneText.map(text => (/^\d+$/.test(text.trim()) ? Number(text.trim()) : NaN));
   const problem = designProblem(rows) || zonesProblem(powerZones);
+  const boxes = designProblem(rows) ? rows.map(() => ({ height: 0 })) : layout(rows);
   const dirty = !saved || saved.background !== background || JSON.stringify(saved.rows) !== JSON.stringify(designProblem(rows) ? rows : normalizeRows(rows)) || JSON.stringify(saved.powerZones ?? null) !== JSON.stringify(powerZones ?? null) || (saved.align === 'center') !== center;
   // Applies an edit to a copy; edits that would break the layout rules are ignored.
-  const change = (edit: (next: Row[]) => void) => { const next = copyRows(rows); edit(next); if (!designProblem(next)) setRows(next); };
+  const change = (edit: (next: Row[]) => void) => { const next = copyRows(rows); edit(next); if (!designProblem(next)) setRows(normalizeRows(next)); };
   const allowed = (edit: (next: Row[]) => void) => { const next = copyRows(rows); edit(next); return !designProblem(next); };
 
   useEffect(() => {
@@ -102,7 +104,8 @@ export function Designer() {
                 <select aria-label={`Row ${r + 1} metric ${c + 1}`} value={cell.metric} onChange={e => change(next => { next[r].cells[c] = { metric: e.target.value }; })}>
                   {Object.entries(METRICS).map(([id, metric]) => <option key={id} value={id} disabled={metric.fullRow && row.cells.length > 1}>{metric.name}</option>)}
                 </select>
-                {METRICS[cell.metric].zone && <label className="zone-toggle"><input type="checkbox" checked={cell.zone === true} onChange={e => change(next => { next[r].cells[c] = e.target.checked ? { metric: cell.metric, zone: true } : { metric: cell.metric }; })}/> Zone colour</label>}
+                {METRICS[cell.metric].zone && <label className="zone-toggle"><input type="checkbox" checked={cell.zone === true} onChange={e => change(next => { next[r].cells[c].zone = e.target.checked; })}/> Zone colour</label>}
+                {METRICS[cell.metric].stats && row.cells.length === 1 && <label className="zone-toggle"><input type="checkbox" checked={cell.stats === true} disabled={boxes[r].height < STATS_MIN_HEIGHT} onChange={e => change(next => { next[r].cells[c].stats = e.target.checked; })}/> Average and max{boxes[r].height < STATS_MIN_HEIGHT && ' (row too short)'}</label>}
               </div>)}
               {row.cells.length === 1
                 ? <button className="split" disabled={METRICS[row.cells[0].metric].fullRow} onClick={() => change(next => { next[r].cells.push({ metric: Object.keys(METRICS).find(id => id !== row.cells[0].metric && !METRICS[id].fullRow)! }); })}>+ Split</button>

@@ -3,14 +3,19 @@
 class ActivityRide {
     var power = null;
     var averagePower = null;
+    var maxPower = null;
     var heartRate = null;
     var averageHeartRate = null;
+    var maxHeartRate = null;
     var headingDegrees = null;
     var cadence = null;
+    var averageCadence = null;
+    var maxCadence = null;
     // Explicit replay workaround only; ordinary activity data uses divisor 1.
     var cadenceDivisor = 1;
     var speedKmh = null;
     var averageSpeedKmh = null;
+    var maxSpeedKmh = null;
     var distanceKm = null;
     var elapsedSeconds = null;
     // Road grade in percent, from altitude gained over distance covered in
@@ -38,6 +43,21 @@ class ActivityRide {
         heartRate = info has :currentHeartRate ? info.currentHeartRate : null;
         averageHeartRate =
             info has :averageHeartRate ? info.averageHeartRate : null;
+        maxPower = info has :maxPower ? info.maxPower : null;
+        maxHeartRate = info has :maxHeartRate ? info.maxHeartRate : null;
+        var rawAverageCadence =
+            info has :averageCadence ? info.averageCadence : null;
+        averageCadence =
+            rawAverageCadence == null
+                ? null
+                : rawAverageCadence / (cadenceDivisor * 1.0);
+        var rawMaxCadence = info has :maxCadence ? info.maxCadence : null;
+        maxCadence =
+            rawMaxCadence == null
+                ? null
+                : rawMaxCadence / (cadenceDivisor * 1.0);
+        var maxSpeed = info has :maxSpeed ? info.maxSpeed : null;
+        maxSpeedKmh = maxSpeed == null ? null : maxSpeed * 3.6;
         var rawCadence = info has :currentCadence ? info.currentCadence : null;
         cadence =
             rawCadence == null ? null : rawCadence / (cadenceDivisor * 1.0);
