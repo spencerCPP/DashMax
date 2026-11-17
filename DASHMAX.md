@@ -172,9 +172,10 @@ The web designer lets a user:
    average-and-max column for power, heart rate, cadence or speed
    in full-width rows at least 70 px tall.
    Power and heart rate can instead use a graph layout in
-   full-width rows at least 110 px tall: the value with average
-   and maximum on top, and a history graph of the last 90 samples
-   underneath, each bar coloured by that sample's zone.
+   full-width rows at least 75 px tall: the value on top and a
+   history graph of the last 90 samples underneath, coloured by
+   zone. In rows at least 110 px tall the graph layout also shows
+   average and maximum, unless that is switched off.
    Choose left-aligned or centred text for the whole screen.
 5. Select a background color.
 6. Save, then edit and save that same design again.

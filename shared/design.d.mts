@@ -9,6 +9,7 @@ export const MAX_ROWS: number;
 export const MAX_CELLS: number;
 export const STATS_MIN_HEIGHT: number;
 export const GRAPH_MIN_HEIGHT: number;
+export const GRAPH_STATS_MIN_HEIGHT: number;
 export const METRICS: Record<string, Metric>;
 export const PRESETS: { id: string; name: string; rows: Row[]; align?: string }[];
 export function designProblem(rows: unknown): string | null;

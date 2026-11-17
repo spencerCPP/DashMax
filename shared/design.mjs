@@ -12,9 +12,12 @@ export const MAX_CELLS = 2;
 // stats: sample [average, maximum] for metrics that can show an avg/max column.
 // The column is drawn only in full-width cells at least STATS_MIN_HEIGHT tall.
 export const STATS_MIN_HEIGHT = 70;
-// trend: the metric can use the graph layout (value, average and maximum, and
-// a zone-coloured history graph) in full-width cells at least GRAPH_MIN_HEIGHT tall.
-export const GRAPH_MIN_HEIGHT = 110;
+// trend: the metric can use the graph layout (value above a zone-coloured
+// history graph) in full-width cells at least GRAPH_MIN_HEIGHT tall. The
+// graph layout also shows average and maximum, unless stats is false, in
+// cells at least GRAPH_STATS_MIN_HEIGHT tall.
+export const GRAPH_MIN_HEIGHT = 75;
+export const GRAPH_STATS_MIN_HEIGHT = 110;
 export const METRICS = {
   power: { name: 'Power', label: 'POWER', short: 'POWER', unit: 'W', sample: '312', zone: true, stats: ['284', '612'], trend: true },
   avgPower: { name: 'Average power', label: 'AVG POWER', short: 'AVG PWR', unit: 'W', sample: '284' },
@@ -75,12 +78,18 @@ export function alignProblem(align) {
 export function normalizeRows(rows) {
   return rows.map(row => ({
     size: row.size,
-    cells: row.cells.map(cell => ({
-      metric: cell.metric,
-      ...(cell.zone === true && METRICS[cell.metric].zone ? { zone: true } : {}),
-      ...(cell.stats === true && METRICS[cell.metric].stats && row.cells.length === 1 ? { stats: true } : {}),
-      ...(cell.graph === true && METRICS[cell.metric].trend && row.cells.length === 1 ? { graph: true } : {}),
-    })),
+    cells: row.cells.map(cell => {
+      const single = row.cells.length === 1;
+      const graph = cell.graph === true && METRICS[cell.metric].trend === true && single;
+      return {
+        metric: cell.metric,
+        ...(cell.zone === true && METRICS[cell.metric].zone ? { zone: true } : {}),
+        ...(cell.stats === true && METRICS[cell.metric].stats && single ? { stats: true } : {}),
+        // On a graph cell, false switches the default average and maximum off.
+        ...(cell.stats === false && graph ? { stats: false } : {}),
+        ...(graph ? { graph: true } : {}),
+      };
+    }),
   }));
 }
 

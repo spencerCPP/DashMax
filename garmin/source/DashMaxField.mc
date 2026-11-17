@@ -757,8 +757,9 @@ class DashMaxField extends WatchUi.DataField {
         }
     }
 
-    // A large full-width power or heart-rate cell in the current box: value
-    // with average and maximum on top, zone-coloured history graph underneath.
+    // A full-width power or heart-rate cell in the current box: the value on
+    // top, with average and maximum beside it when `stats` is given, and a
+    // zone-coloured history graph underneath.
     function drawGraphCell(dc, center, data, stats, history) {
         var left = _boxLeft;
         var width = _boxWidth;
@@ -783,18 +784,22 @@ class DashMaxField extends WatchUi.DataField {
             data[2],
             Graphics.TEXT_JUSTIFY_RIGHT
         );
-        // Average and maximum, stacked at the right.
-        var each = valueHeight / 2.0;
-        var line = "AVG " + stats[0];
-        var font = fit(dc, line, 78, each);
-        py = y(valueTop);
-        dc.drawText(px, py, font, line, Graphics.TEXT_JUSTIFY_RIGHT);
-        line = "MAX " + stats[1];
-        font = fit(dc, line, 78, each);
-        py = y(valueTop + each);
-        dc.drawText(px, py, font, line, Graphics.TEXT_JUSTIFY_RIGHT);
+        var font = null;
+        var room = width - 24;
+        if (stats != null) {
+            // Average and maximum, stacked at the right.
+            room = width - 108;
+            var each = valueHeight / 2.0;
+            var line = "AVG " + stats[0];
+            font = fit(dc, line, 78, each);
+            py = y(valueTop);
+            dc.drawText(px, py, font, line, Graphics.TEXT_JUSTIFY_RIGHT);
+            line = "MAX " + stats[1];
+            font = fit(dc, line, 78, each);
+            py = y(valueTop + each);
+            dc.drawText(px, py, font, line, Graphics.TEXT_JUSTIFY_RIGHT);
+        }
         // The live value, vertically centred in its band.
-        var room = width - 108;
         font = fit(dc, data[3], room, valueHeight);
         var spare = y(valueHeight) - dc.getFontHeight(font);
         py = y(valueTop);
@@ -972,15 +977,18 @@ class DashMaxField extends WatchUi.DataField {
                 _boxTop = top;
                 _boxHeight = height;
                 // The graph layout needs a full-width power or heart-rate
-                // cell at least 110 px tall.
+                // cell at least 75 px tall, and 110 px to also fit average
+                // and maximum, which show unless switched off.
                 var power = id.equals("power");
                 if (
                     cell["graph"] == true &&
                     count == 1 &&
-                    height >= 110 &&
+                    height >= 75 &&
                     (power || id.equals("heartRate"))
                 ) {
-                    stats = cellStats(id);
+                    if (cell["stats"] != false && height >= 110) {
+                        stats = cellStats(id);
+                    }
                     var history = power ? _history : _heartHistory;
                     drawGraphCell(dc, center, data, stats, history);
                 } else {

@@ -98,3 +98,12 @@ test('the graph layout is kept only on full-width power and heart-rate cells', (
   assert.deepEqual(rows.map(row => row.cells[0]), [{ metric: 'power', graph: true }, { metric: 'speed' }, { metric: 'heartRate' }]);
   assert.ok(designProblem([{ size: 3, cells: [{ metric: 'power', graph: 1 }] }]));
 });
+
+test('a graph cell can switch average and max off; other cells cannot store false', () => {
+  const rows = normalizeRows([
+    { size: 2, cells: [{ metric: 'power', graph: true, stats: false }] },
+    { size: 2, cells: [{ metric: 'heartRate', graph: true }] },
+    { size: 2, cells: [{ metric: 'speed', stats: false }] },
+  ]);
+  assert.deepEqual(rows.map(row => row.cells[0]), [{ metric: 'power', stats: false, graph: true }, { metric: 'heartRate', graph: true }, { metric: 'speed' }]);
+});

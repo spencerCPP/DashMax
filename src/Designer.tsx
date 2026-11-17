@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { METRICS, PRESETS, MAX_ROWS, WIDTH, HEIGHT, STATS_MIN_HEIGHT, GRAPH_MIN_HEIGHT, designProblem, zonesProblem, normalizeRows, layout, type Row } from '../shared/design.mjs';
+import { METRICS, PRESETS, MAX_ROWS, WIDTH, HEIGHT, STATS_MIN_HEIGHT, GRAPH_MIN_HEIGHT, GRAPH_STATS_MIN_HEIGHT, designProblem, zonesProblem, normalizeRows, layout, type Row } from '../shared/design.mjs';
 import './designer.css';
 
 type Design = { id: string; revision: number; rows: Row[]; background: number; foreground: number; powerZones?: number[]; align?: string };
@@ -51,15 +51,16 @@ function Preview({ rows, background, foreground, center }: { rows: Row[]; backgr
       if (graph) {
         const band = box.height - 22 - 4;
         const tall = band * .45;
+        const withStats = cell.stats !== false && box.height >= GRAPH_STATS_MIN_HEIGHT;
         return <div key={`${r}-${c}`} className="design-cell" style={{ left: cell.left, top: box.top, width: cell.width, height: box.height, padding: '6px 12px 4px', borderTop: r ? '1px solid' : undefined, borderColor: foreground }}>
           <div className="design-label"><span>{metric.label}</span><span>{metric.unit}</span></div>
-          <div className="design-value" style={{ height: tall }}><strong style={{ fontSize: Math.min(tall * 1.05, 150 / (metric.sample.length * .42)), lineHeight: `${tall}px`, textAlign: center ? 'center' : undefined }}>{metric.sample}</strong><div className="design-stats"><span>AVG {metric.stats![0]}</span><span>MAX {metric.stats![1]}</span></div></div>
+          <div className="design-value" style={{ height: tall }}><strong style={{ fontSize: Math.min(tall * 1.05, (withStats ? 150 : 222) / (metric.sample.length * .42)), lineHeight: `${tall}px`, textAlign: center ? 'center' : undefined }}>{metric.sample}</strong>{withStats && <div className="design-stats"><span>AVG {metric.stats![0]}</span><span>MAX {metric.stats![1]}</span></div>}</div>
           <Trend metric={cell.metric}/>
         </div>;
       }
       const fill = cell.zone ? ZONE_PREVIEW[cell.metric] : undefined;
       // Barlow Condensed digits are roughly 0.42 em wide.
-      const stats = cell.stats && metric.stats && !half && box.height >= STATS_MIN_HEIGHT ? metric.stats : null;
+      const stats = cell.stats === true && metric.stats && !half && box.height >= STATS_MIN_HEIGHT ? metric.stats : null;
       const size = Math.max(11, Math.min(valueHeight * 1.05, (cell.width - 2 * pad - (stats ? 84 : 0)) / (Math.max(metric.sample.length, 1) * .42)));
       return <div key={`${r}-${c}`} className="design-cell" style={{ left: cell.left, top: box.top, width: cell.width, height: box.height, padding: `${compact ? 2 : 8}px ${pad}px`, background: fill, color: fill ? '#000000' : undefined, borderTop: r ? '1px solid' : undefined, borderLeft: c ? '1px solid' : undefined, borderColor: foreground }}>
         <div className="design-label">{center ? <span>{half ? metric.short : metric.label} {metric.unit}</span> : <><span>{half ? metric.short : metric.label}</span><span>{metric.unit}</span></>}</div>
@@ -138,9 +139,9 @@ export function Designer() {
                 <select aria-label={`Row ${r + 1} metric ${c + 1}`} value={cell.metric} onChange={e => change(next => { next[r].cells[c] = { metric: e.target.value }; })}>
                   {Object.entries(METRICS).map(([id, metric]) => <option key={id} value={id} disabled={metric.fullRow && row.cells.length > 1}>{metric.name}</option>)}
                 </select>
-                {METRICS[cell.metric].trend && row.cells.length === 1 && <label className="zone-toggle"><input type="checkbox" checked={cell.graph === true} disabled={boxes[r].height < GRAPH_MIN_HEIGHT} onChange={e => change(next => { next[r].cells[c].graph = e.target.checked; })}/> Graph with average and max{boxes[r].height < GRAPH_MIN_HEIGHT && ' (needs a taller row)'}</label>}
+                {METRICS[cell.metric].trend && row.cells.length === 1 && <label className="zone-toggle"><input type="checkbox" checked={cell.graph === true} disabled={boxes[r].height < GRAPH_MIN_HEIGHT} onChange={e => change(next => { next[r].cells[c].graph = e.target.checked; })}/> Graph{boxes[r].height < GRAPH_MIN_HEIGHT && ' (needs a taller row)'}</label>}
                 {METRICS[cell.metric].zone && <label className="zone-toggle"><input type="checkbox" checked={cell.zone === true} onChange={e => change(next => { next[r].cells[c].zone = e.target.checked; })}/> Zone colour</label>}
-                {METRICS[cell.metric].stats && row.cells.length === 1 && <label className="zone-toggle"><input type="checkbox" checked={cell.stats === true} disabled={boxes[r].height < STATS_MIN_HEIGHT} onChange={e => change(next => { next[r].cells[c].stats = e.target.checked; })}/> Average and max{boxes[r].height < STATS_MIN_HEIGHT && ' (row too short)'}</label>}
+                {METRICS[cell.metric].stats && row.cells.length === 1 && (() => { const needs = cell.graph ? GRAPH_STATS_MIN_HEIGHT : STATS_MIN_HEIGHT; const short = boxes[r].height < needs; return <label className="zone-toggle"><input type="checkbox" checked={!short && (cell.graph ? cell.stats !== false : cell.stats === true)} disabled={short} onChange={e => change(next => { next[r].cells[c].stats = e.target.checked; })}/> Average and max{short && ' (row too short)'}</label>; })()}
               </div>)}
               {row.cells.length === 1
                 ? <button className="split" disabled={METRICS[row.cells[0].metric].fullRow} onClick={() => change(next => { next[r].cells.push({ metric: Object.keys(METRICS).find(id => id !== row.cells[0].metric && !METRICS[id].fullRow)! }); })}>+ Split</button>
