@@ -64,13 +64,16 @@ The manifest includes the `UserProfile` permission.
 Power zones are taken from the first source available:
 
 1. Garmin's power zones, read from the user profile.
-2. Garmin's FTP with Garmin's default zone percentages: the top of
-   zones 1 to 6 at 55, 75, 90, 105, 120 and 150 percent of FTP.
+2. Garmin's FTP with fixed zone percentages: the top of zones 1 to
+   6 at 55.5, 73.6, 90.7, 104.0, 122.0 and 150.7 percent of FTP.
 3. Limits entered in the web designer.
 
 With none of these, power stays uncoloured. No FTP value or
-threshold is hardcoded. The percentages in step 2 were written
-from memory and should be checked against Garmin Connect.
+threshold is hardcoded. The percentages in step 2 are the ratios
+between the test rider's Garmin Connect zone limits (126, 167,
+206, 236, 277, 342 W) and their 227 W FTP, which they reproduce
+exactly. Whether every Garmin account uses the same percentages
+has not been confirmed.
 
 Only the power and HR sections receive zone colors.
 No additional zone labels are displayed.
@@ -216,10 +219,9 @@ the designer: the top of zones 1 to 6 in watts, saved with the
 design as `powerZones`.
 
 The FTP step keeps the device in step with Garmin without manual
-entry, but it is only exact for riders on default zones. The test
-rider's limits (126, 167, 206, 236, 277, 342 W) differ by up to
-5 W from the percentages applied to a 229 W FTP, so readings near
-a boundary can colour as the neighbouring zone. Whether the FTP
+entry, and matches the test rider's zones exactly. A rider whose
+zones use other percentages would see readings near a boundary
+colour as the neighbouring zone. Whether the FTP
 call returns a value on the Edge 840 is not yet confirmed; the
 server's `Device power zones:` line includes it as `ftp:`.
 

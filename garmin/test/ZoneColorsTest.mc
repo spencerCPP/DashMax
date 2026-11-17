@@ -71,23 +71,24 @@ function testOnlyPowerAndHeartRateRegionsAreFilled(logger) {
 
 (:test)
 function testPowerZonesFromFtp(logger) {
-    var bounds = ZoneColors.fromFtp(200);
+    // The reference rider: 227 W FTP gives their Garmin Connect limits.
+    var bounds = ZoneColors.fromFtp(227);
     Test.assertEqual(bounds.size(), 8);
     Test.assertEqual(bounds[0], 0);
-    Test.assertEqual(bounds[1], 110);
-    Test.assertEqual(bounds[2], 150);
-    Test.assertEqual(bounds[3], 180);
-    Test.assertEqual(bounds[4], 210);
-    Test.assertEqual(bounds[5], 240);
-    Test.assertEqual(bounds[6], 300);
+    Test.assertEqual(bounds[1], 126);
+    Test.assertEqual(bounds[2], 167);
+    Test.assertEqual(bounds[3], 206);
+    Test.assertEqual(bounds[4], 236);
+    Test.assertEqual(bounds[5], 277);
+    Test.assertEqual(bounds[6], 342);
     Test.assert(ZoneColors.valid(bounds));
-    Test.assertEqual(ZoneColors.index(110, bounds), 0);
-    Test.assertEqual(ZoneColors.index(111, bounds), 1);
-    Test.assertEqual(ZoneColors.index(301, bounds), 6);
-    // Limits round to the nearest watt, and a decimal FTP is accepted.
-    Test.assertEqual(ZoneColors.fromFtp(229)[1], 126);
-    Test.assertEqual(ZoneColors.fromFtp(229)[2], 172);
-    Test.assertEqual(ZoneColors.fromFtp(229.0)[6], 344);
+    Test.assertEqual(ZoneColors.index(126, bounds), 0);
+    Test.assertEqual(ZoneColors.index(127, bounds), 1);
+    Test.assertEqual(ZoneColors.index(343, bounds), 6);
+    // Limits scale with FTP and round to the nearest watt; decimals are fine.
+    Test.assertEqual(ZoneColors.fromFtp(300)[1], 167);
+    Test.assertEqual(ZoneColors.fromFtp(300)[6], 452);
+    Test.assertEqual(ZoneColors.fromFtp(227.0)[4], 236);
     Test.assert(ZoneColors.fromFtp(null) == null);
     Test.assert(ZoneColors.fromFtp(0) == null);
     return true;

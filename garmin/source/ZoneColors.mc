@@ -33,18 +33,20 @@ module ZoneColors {
         return boundaries.size() - 2;
     }
 
-    // Seven power zones from FTP, using Garmin's default percentages: the top
-    // of zones 1 to 6 is 55, 75, 90, 105, 120 and 150 percent of FTP. Returned
+    // Seven power zones from FTP. The top of zones 1 to 6 is 55.5, 73.6, 90.7,
+    // 104.0, 122.0 and 150.7 percent of FTP: the ratios between a rider's
+    // Garmin Connect zone limits (126/167/206/236/277/342 W) and their FTP
+    // (227 W), which these figures reproduce exactly. Returned
     // in Garmin's layout, [min zone 1, max zone 1, ... max zone 7], or null
     // without a usable FTP.
     function fromFtp(ftp) {
         if (ftp == null || ftp < 30 || ftp > 3000) {
             return null;
         }
-        var percents = [55, 75, 90, 105, 120, 150];
+        var perMille = [555, 736, 907, 1040, 1220, 1507];
         var bounds = [0];
         for (var i = 0; i < 6; i += 1) {
-            bounds.add(((ftp * percents[i]) / 100.0 + 0.5).toNumber());
+            bounds.add(((ftp * perMille[i]) / 1000.0 + 0.5).toNumber());
         }
         // Zone 7 has no upper limit.
         bounds.add(100000);
