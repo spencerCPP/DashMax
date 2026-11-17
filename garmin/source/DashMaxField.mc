@@ -652,6 +652,7 @@ class DashMaxField extends WatchUi.DataField {
             return;
         }
         _zones.refresh();
+        _design.note = _zones.powerRaw;
         _ink = config["foreground"];
         _muted = _ink;
         dc.setColor(_ink, config["background"]);

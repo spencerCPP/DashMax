@@ -27,6 +27,8 @@ export function createDesignServer({ dataDir = path.join(root, '.dashmax-designs
   const persist = () => { mkdirSync(dataDir, { recursive: true }); writeFileSync(`${file}.tmp`, JSON.stringify(designs, null, 2), { mode: 0o600 }); renameSync(`${file}.tmp`, file); };
   // Last revision each design's device said it was showing; not persisted.
   const shown = {};
+  // Last power-zone diagnostic each design's device sent; not persisted.
+  const zones = {};
   const json = (res, status, data) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
   return http.createServer(async (req, res) => {
     try {
@@ -45,6 +47,11 @@ export function createDesignServer({ dataDir = path.join(root, '.dashmax-designs
         }
         const have = /^\d{1,10}$/.test(url.searchParams.get('have') || '') ? Number(url.searchParams.get('have')) : null;
         logger(`${clock()} Design fetched: ${design.id} revision ${design.revision}${have === null ? '' : ` (device has ${have})`}`);
+        const pz = url.searchParams.get('pz') || '';
+        if (/^[\w./-]{1,160}$/.test(pz) && pz !== zones[design.id]) {
+          zones[design.id] = pz;
+          logger(`${clock()} Device power zones: ${pz}`);
+        }
         if (have !== null && have !== shown[design.id]) {
           shown[design.id] = have;
           if (have === design.revision) {

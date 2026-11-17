@@ -54,6 +54,12 @@ test('server logs when a device reports the current revision', async () => {
     assert.equal(showing(), 1);
     await fetch(`${base}/api/designs/${design.id}?have=2`);
     assert.equal(showing(), 2);
+    const zoneLines = () => lines.filter(line => line.includes('Device power zones'));
+    await fetch(`${base}/api/designs/${design.id}?have=2&pz=8-0/120/165/200/230/270/330/2000`);
+    await fetch(`${base}/api/designs/${design.id}?have=2&pz=8-0/120/165/200/230/270/330/2000`);
+    await fetch(`${base}/api/designs/${design.id}?have=2&pz=${encodeURIComponent('<script>')}`);
+    assert.equal(zoneLines().length, 1);
+    assert.match(zoneLines()[0], /Device power zones: 8-0\/120\/165\/200\/230\/270\/330\/2000$/);
   } finally { await new Promise(resolve => server.close(resolve)); rmSync(dir, { recursive: true, force: true }); }
 });
 

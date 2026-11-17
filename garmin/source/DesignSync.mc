@@ -195,6 +195,8 @@ class DesignSync {
     var _busy = false;
     var _riding = false;
     var _drawn = null;
+    // Optional diagnostic text sent with each request for the server log.
+    var note = null;
 
     // Prefix sync messages with the device's wall-clock time so device logs
     // can be lined up against the server's.
@@ -253,12 +255,11 @@ class DesignSync {
                 // Tell the server which format this build can draw and which
                 // revision is on screen, so its log shows when this device
                 // picked each save up.
-                config == null
-                    ? { "schema" => DesignConfig.SCHEMA }
-                    : {
-                          "schema" => DesignConfig.SCHEMA,
-                          "have" => config["revision"],
-                      },
+                {
+                    "schema" => DesignConfig.SCHEMA,
+                    "have" => config == null ? 0 : config["revision"],
+                    "pz" => note == null ? "" : note,
+                },
                 {
                     :method => Communications.HTTP_REQUEST_METHOD_GET,
                     :responseType

@@ -5,6 +5,9 @@ using Toybox.Activity;
 class GarminZones {
     var heartRate = null;
     var power = null;
+    // What Garmin returned for power zones, for diagnosis: the raw limits
+    // joined by "/", or "none", "unsupported" or "error".
+    var powerRaw = "unread";
     var _refreshedAt = null;
     var _reported = false;
 
@@ -60,6 +63,20 @@ class GarminZones {
                 ZoneColors.valid(powerBounds) && powerBounds.size() == 8
                     ? powerBounds
                     : null;
+            if (!(UserProfile has :getPowerZones)) {
+                powerRaw = "unsupported";
+            } else if (powerBounds == null) {
+                powerRaw = "none";
+            } else {
+                powerRaw = powerBounds.size().toString() + "-";
+                for (var z = 0; z < powerBounds.size(); z += 1) {
+                    powerRaw +=
+                        (z > 0 ? "/" : "") +
+                        (powerBounds[z] == null
+                            ? "x"
+                            : powerBounds[z].toString());
+                }
+            }
             if (!_reported && powerBounds != null && power == null) {
                 System.println(
                     "Power zone format needs verification; leaving power background neutral."
@@ -68,6 +85,7 @@ class GarminZones {
             }
         } catch (error) {
             power = null;
+            powerRaw = "error";
         }
         if (!_reported) {
             logLimits("HR", heartRate);
