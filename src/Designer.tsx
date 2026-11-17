@@ -6,7 +6,7 @@ type Design = { id: string; revision: number; rows: Row[]; background: number; f
 
 const SIZES = [[1, 'S'], [2, 'M'], [3, 'L']] as const;
 // Stand-ins for the preview; on the device the colour follows the rider's Garmin zones.
-const ZONE_PREVIEW: Record<string, string> = { power: '#faca48', heartRate: '#f27716', grade: '#faca48' };
+const ZONE_PREVIEW: Record<string, string> = { power: '#faca48', heartRate: '#f27716', grade: '#efad43' };
 // Made-up history for the preview graphs: [samples, zone tops, zone colours].
 const TREND: Record<string, [number[], number[], string[]]> = {
   power: [Array.from({ length: 90 }, (_, i) => Math.round(190 + 105 * Math.sin(i / 15) + 30 * Math.sin(i / 2.7))), [126, 167, 206, 236, 277, 342], ['#a6a6a6', '#3b97f3', '#40c35d', '#faca48', '#f27716', '#e02c2c', '#6f42f3']],

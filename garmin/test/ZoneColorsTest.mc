@@ -99,14 +99,14 @@ function testGradeBands(logger) {
     Test.assert(ZoneColors.grade(null) == null);
     Test.assert(ZoneColors.grade(0) == null);
     Test.assert(ZoneColors.grade(-4.5) == null);
-    Test.assertEqual(ZoneColors.grade(0.1)[0], 0x40c35d);
-    Test.assertEqual(ZoneColors.grade(3)[0], 0x40c35d);
-    Test.assertEqual(ZoneColors.grade(3.2)[0], 0xfaca48);
-    Test.assertEqual(ZoneColors.grade(6.0)[0], 0xfaca48);
-    Test.assertEqual(ZoneColors.grade(8.9)[0], 0xf27716);
-    Test.assertEqual(ZoneColors.grade(12)[0], 0xe02c2c);
-    Test.assertEqual(ZoneColors.grade(12.1)[0], 0x9c1c1c);
-    Test.assertEqual(ZoneColors.grade(40)[0], 0x9c1c1c);
+    Test.assertEqual(ZoneColors.grade(0.1)[0], 0x7dbb56);
+    Test.assertEqual(ZoneColors.grade(3)[0], 0x7dbb56);
+    Test.assertEqual(ZoneColors.grade(3.2)[0], 0xefad43);
+    Test.assertEqual(ZoneColors.grade(6.0)[0], 0xefad43);
+    Test.assertEqual(ZoneColors.grade(8.9)[0], 0xdf6336);
+    Test.assertEqual(ZoneColors.grade(12)[0], 0xda3a32);
+    Test.assertEqual(ZoneColors.grade(12.1)[0], 0x75140c);
+    Test.assertEqual(ZoneColors.grade(40)[0], 0x75140c);
     // White text on red and dark red, black on the lighter bands.
     Test.assert(!ZoneColors.grade(5)[1]);
     Test.assert(ZoneColors.grade(10)[1]);
