@@ -49,7 +49,7 @@ Replace both placeholders with your tunnel URL and the ID shown by the web app. 
 
 This minimum test uses **mock telemetry by default**, so no FIT replay or sensors are needed to prove configuration transfer. Native speed/distance units still follow Garmin's setting. There is no application-settings menu to find; the URL and ID are bootstrapped into the ignored generated `garmin/bin/design-project` copy for this development test. The normal DashMax source and balanced layout are retained.
 
-The field calls `Communications.makeWebRequest` with the `Communications` permission, using direct data-field Communications support introduced in API 5.0. The project targets API 5.2.2 or newer. Configuration is requested in a **startup sync window**: the cached design is shown immediately, the first request is sent when the field starts, and requests repeat approximately every **15 seconds** for **two minutes**. After that the field stops polling, logs `Design sync window closed; keeping current screen`, and keeps the last valid design until it is started again. Sync only happens before a ride: once the activity timer has been started, no requests are sent and any late response is dropped, until the ride is saved or discarded. This is not an always-running background sync service.
+The field calls `Communications.makeWebRequest` with the `Communications` permission, using direct data-field Communications support introduced in API 5.0. The project targets API 5.2.2 or newer. The cached design is shown immediately and the first request is sent when the field starts. After that the field checks for a new revision whenever no ride is in progress: approximately every **30 seconds** by default, and every **5 seconds** for three minutes after a change arrives, so an editing session previews quickly. Once the activity timer has been started, no requests are sent and any late response is dropped, until the ride is saved or discarded. This is foreground polling, not an always-running background sync service.
 
 The native console must report:
 
@@ -63,9 +63,9 @@ The device should show the selected three metrics and background. Until a valid 
 
 1. Leave the simulator, API server, and HTTPS tunnel running.
 2. Change a metric and the background in the browser.
-3. Within two minutes of the field starting, and without starting the activity timer, click **Save changes**. The ID must stay the same and the revision must increment.
-4. Within approximately 15 seconds, require a native console message for the new revision and the corresponding device-screen changes.
-5. Do **not** rebuild or run the native launcher between these changes while the window is open. Once it has closed, later saves are picked up the next time the field starts (rerunning the launcher restarts it). This is the key proof that the web app is driving the screen rather than generating a new binary.
+3. Without starting the activity timer, click **Save changes**. The ID must stay the same and the revision must increment.
+4. Within approximately 30 seconds for the first change, and 5 seconds for changes made in the next three minutes, require a native console message for the new revision and the corresponding device-screen changes.
+5. Do **not** rebuild or run the native launcher between these changes. This is the key proof that the web app is driving the screen rather than generating a new binary.
 
 The browser preview uses mock values and web fonts. It verifies selection/order/color, not pixel-identical Garmin typography.
 
@@ -81,7 +81,7 @@ To use activity values instead of mocks:
 npm run garmin:design -- --server=https://YOUR-TUNNEL.trycloudflare.com --design=YOUR_DESIGN_ID --fit --cadence-divisor=2
 ```
 
-Use the cadence correction only for the previously confirmed doubled simulator behavior. Start the recorded activity through Garmin's FIT playback controls. Missing channels show `--`. Changing metric selections in the browser still updates the same running native program without another build, but only inside the startup window and before the activity timer starts. If playback starts the timer, sync stops and the console prints `Design sync off while a ride is in progress`, so save design changes before starting playback.
+Use the cadence correction only for the previously confirmed doubled simulator behavior. Start the recorded activity through Garmin's FIT playback controls. Missing channels show `--`. Changing metric selections in the browser still updates the same running native program without another build, but only before the activity timer starts. If playback starts the timer, sync stops and the console prints `Design sync off while a ride is in progress`, so save design changes before starting playback.
 
 ## What has and has not been validated
 
@@ -96,5 +96,5 @@ A real Edge can run a development `.prg` by sideloading it into its `GARMIN/APPS
 - **HTTP/negative request code in the native console:** first run the tunnel curl check. Confirm the tunnel/server are still running and the simulator has network connectivity enabled. Keep HTTPS enforcement on. Retain the exact response code if the request still fails.
 - **404:** check the design ID and that the tunnel points to the correct local server. Designs live on the server that saved them, not on Cloudflare.
 - **Waiting screen:** no valid config has arrived or been cached for that exact endpoint and ID.
-- **New revision not visible:** click Save changes, check the ID did not change, wait at least 15 seconds, and inspect API/native logs. If the console shows `Design sync window closed`, the two-minute startup window has ended; restart the field to fetch the new revision.
+- **New revision not visible:** click Save changes, check the ID did not change, wait at least 30 seconds, and inspect API/native logs. If the console shows `Design sync off while a ride is in progress`, the activity timer is running; save or discard the activity to resume sync.
 - **Local debug edits conflict on pull:** preserve your edits before updating. Generated files under `garmin/bin` are rebuilt automatically; edit original source files instead.

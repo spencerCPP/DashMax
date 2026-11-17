@@ -263,26 +263,29 @@ needs testing.
 
 ### Current implementation
 
-The field syncs in a short startup window, and only before a ride:
+The field syncs whenever no ride is in progress:
 
 1. Display the cached layout immediately.
 2. Request the latest design when DashMax starts.
-3. Repeat every 15 seconds for up to two minutes, whether or not
-   an earlier request succeeded.
-4. Stop polling when the window expires.
-5. Retain the last valid layout if connectivity fails.
+3. Check again every 30 seconds.
+4. After a new revision arrives, check every 5 seconds for three
+   minutes, so an editing session previews quickly.
+5. Retain the last valid layout if connectivity fails, and keep
+   trying.
 
 A design must never change mid-ride. Once the activity timer has
 been started, no requests are sent and a response that arrives
 late is dropped. A paused or stopped timer still counts as riding;
-sync is possible again only after the ride is saved or discarded
-and the field starts a new window.
+sync resumes after the ride is saved or discarded.
 
-A rider who powers on and starts riding immediately keeps the
-cached design for that ride.
+This means changes made while the device was off arrive at
+startup, a phone that connects late is picked up, and an editing
+session needs no time limit, toggle, or power cycle.
 
-The window is driven from `compute()` as well as the draw path, so
-it is not lost if the field is created while another page shows.
+A device left on the DashMax page without starting a ride keeps
+making a small request every 30 seconds through the phone.
+
+Polling is driven from `compute()` as well as the draw path.
 Whether Garmin calls `compute()` for off-screen fields, and when it
 creates or retains a field instance, still needs verifying on a
 physical Edge.
@@ -290,13 +293,27 @@ physical Edge.
 DashMax can display before the rider presses Start; activity
 recording does not need to be running.
 
-The earlier experiment polled every 15 seconds for as long as the
-field was active. That proved live editing and has been replaced.
+### Earlier approaches
+
+- Polling every 15 seconds for as long as the field was active
+  proved live editing, but allowed mid-ride changes and traffic
+  for a whole ride.
+- A two-minute startup-only window was built and validated in the
+  simulator, then dropped after testing on a physical Edge: once
+  the window closed, or if the phone was not connected during it,
+  the only way to sync was to power-cycle the device.
+
+### Future option: designer-signalled fast polling
+
+The first edit of a session can take up to 30 seconds to appear.
+If that proves annoying, the server could add an "editor active"
+flag to the design response while the designer page is open in a
+browser, and the device would poll fast whenever it sees the flag.
+Having the designer open becomes the toggle. This needs a small
+server and web change and a schema addition; it is not built.
 
 ### Alternatives Discussed
 
-- Continuous polling: worked, but created unnecessary recurring
-  traffic and allowed mid-ride layout changes. Replaced.
 - Touch-based manual sync: insufficient as the only mechanism
   because the product should support non-touch devices.
 - Page-navigation gestures: possible, but reliability and
@@ -364,8 +381,6 @@ setup so output capture can be established.
 - Web design downloads and native rendering in the simulator.
 - Live updates to the running simulator without rebuilding.
 - Full native regression suite on the local SDK (twelve tests).
-- Startup sync window opening on launch and closing after two
-  minutes in the simulator.
 - Cached design restored on restart, then replaced by a newer
   saved revision.
 - Sync switching off when the activity timer starts, and a design
@@ -374,6 +389,8 @@ setup so output capture can be established.
 
 ### Implemented but Still Requiring Validation
 
+- Paced pre-ride polling (30 seconds, 5 seconds after a change),
+  which replaced the startup window.
 - Garmin zone-array formats and zone-color boundary behavior.
 - Heading behavior across actual device conditions.
 - Physical Edge → paired phone → HTTPS service connectivity.
@@ -429,7 +446,8 @@ See:
 
 ## Recommended Next Steps
 
-1. Test initialization and networking on a physical Edge.
+1. Validate paced pre-ride polling in the simulator and on a
+   physical Edge.
 2. Deploy a stable hosted backend to replace the temporary tunnel.
 3. Expand the web designer using constrained, native-supported
    layouts and a versioned shared configuration schema.
