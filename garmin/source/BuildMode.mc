@@ -5,4 +5,5 @@ module BuildMode {
     const DESIGN_ID = "";
     const ACTIVITY_DATA = false;
     const CADENCE_DIVISOR = 1;
+    const COLOR_TEST = false;
 }

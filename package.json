@@ -14,7 +14,8 @@
     "garmin:test": "node scripts/garmin.mjs test",
     "garmin:fit": "node scripts/garmin.mjs fit",
     "designer": "npm run build && node server/design-server.mjs",
-    "garmin:design": "node scripts/garmin.mjs design"
+    "garmin:design": "node scripts/garmin.mjs design",
+    "garmin:colors": "node scripts/garmin.mjs colors"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",

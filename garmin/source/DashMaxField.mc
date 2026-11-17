@@ -48,6 +48,7 @@ class DashMaxField extends WatchUi.DataField {
     var _valueTop = 0;
     var _valueHeight = 0;
     var _valueRoom = 0;
+    var _labelFont = Graphics.FONT_XTINY;
 
     function initialize() {
         DataField.initialize();
@@ -238,6 +239,10 @@ class DashMaxField extends WatchUi.DataField {
         _drawMissing = missing;
         _drawStopped = stopped;
         _drawAnimate = animate;
+        if (BuildMode.COLOR_TEST) {
+            drawColorTest(dc);
+            return;
+        }
         if (_design != null) {
             _design.poll(_riding);
             drawDesign(dc);
@@ -245,6 +250,70 @@ class DashMaxField extends WatchUi.DataField {
             return;
         }
         drawDashboard(dc);
+    }
+
+    // Colour test screen: each zone colour (rows 1-7) beside lighter mixes of
+    // it with white (columns A-D: 0, 25, 45 and 65 percent white), with a
+    // sample number, for choosing colours that read well on the real screen.
+    function drawColorTest(dc) {
+        var bases = [
+            0xa6a6a6,
+            0x3b97f3,
+            0x40c35d,
+            0xfaca48,
+            0xf27716,
+            0xe02c2c,
+            0x6f42f3,
+        ];
+        var mixes = [0, 25, 45, 65];
+        var letters = ["A", "B", "C", "D"];
+        for (var i = 0; i < 28; i += 1) {
+            var row = i / 4;
+            var col = i % 4;
+            var color = mixColor(bases[row], mixes[col]);
+            var left = x(col * 61.5);
+            var top = y(row * 46);
+            dc.setColor(color, color);
+            dc.fillRectangle(left, top, x((col + 1) * 61.5) - left, y((row + 1) * 46) - top);
+            dc.setColor(
+                textOn(color),
+                Graphics.COLOR_TRANSPARENT
+            );
+            dc.drawText(
+                left + 3,
+                top + 1,
+                Graphics.FONT_XTINY,
+                (row + 1).toString() + letters[col],
+                Graphics.TEXT_JUSTIFY_LEFT
+            );
+            dc.drawText(
+                left + x(30.75),
+                top + y(14),
+                Graphics.FONT_MEDIUM,
+                "146",
+                Graphics.TEXT_JUSTIFY_CENTER
+            );
+        }
+    }
+
+    // A colour mixed with white by the given percentage.
+    function mixColor(color, percent) {
+        var red = (color >> 16) & 0xff;
+        var green = (color >> 8) & 0xff;
+        var blue = color & 0xff;
+        red = red + ((255 - red) * percent) / 100;
+        green = green + ((255 - green) * percent) / 100;
+        blue = blue + ((255 - blue) * percent) / 100;
+        return (red << 16) | (green << 8) | blue;
+    }
+
+    // Black or white text, whichever reads better on the colour.
+    function textOn(color) {
+        var bright =
+            ((color >> 16) & 0xff) * 299 +
+            ((color >> 8) & 0xff) * 587 +
+            (color & 0xff) * 114;
+        return bright < 140000 ? Graphics.COLOR_WHITE : Graphics.COLOR_BLACK;
     }
 
     // The original fixed dashboard.
@@ -803,8 +872,8 @@ class DashMaxField extends WatchUi.DataField {
     // top, with average and maximum beside it when _stats is set, and a
     // zone-coloured history graph underneath.
     function drawGraphCell(dc, history) {
-        var valueTop = _boxTop + 22;
-        var band = _boxHeight - 26;
+        var valueTop = _boxTop + 6 + pickLabelFont(dc, _boxHeight);
+        var band = _boxTop + _boxHeight - valueTop - 4;
         var valueHeight = band * 0.45;
         dc.setColor(_ink, Graphics.COLOR_TRANSPARENT);
         var px = x(_boxLeft + 12);
@@ -812,7 +881,7 @@ class DashMaxField extends WatchUi.DataField {
         dc.drawText(
             px,
             py,
-            Graphics.FONT_XTINY,
+            _labelFont,
             _data[0],
             Graphics.TEXT_JUSTIFY_LEFT
         );
@@ -820,7 +889,7 @@ class DashMaxField extends WatchUi.DataField {
         dc.drawText(
             px,
             py,
-            Graphics.FONT_XTINY,
+            _labelFont,
             _data[2],
             Graphics.TEXT_JUSTIFY_RIGHT
         );
@@ -828,13 +897,13 @@ class DashMaxField extends WatchUi.DataField {
         var room = _boxWidth - 24;
         if (_stats != null) {
             // Average and maximum, stacked at the right.
-            room = _boxWidth - 108;
+            room = _boxWidth - 120;
             var line = "AVG " + _stats[0];
-            font = fit(dc, line, 78, valueHeight / 2.0);
+            font = fit(dc, line, 90, valueHeight / 2.0);
             py = y(valueTop);
             dc.drawText(px, py, font, line, Graphics.TEXT_JUSTIFY_RIGHT);
             line = "MAX " + _stats[1];
-            font = fit(dc, line, 78, valueHeight / 2.0);
+            font = fit(dc, line, 90, valueHeight / 2.0);
             py = y(valueTop + valueHeight / 2.0);
             dc.drawText(px, py, font, line, Graphics.TEXT_JUSTIFY_RIGHT);
         }
@@ -883,6 +952,19 @@ class DashMaxField extends WatchUi.DataField {
         _cellInk = selected[1] ? Graphics.COLOR_WHITE : Graphics.COLOR_BLACK;
     }
 
+    // Label font for a cell of the given height (322-unit): Garmin's xtiny
+    // (about 11 px) in short rows, tiny (13 px) in medium, small (16 px) in
+    // large. Sets _labelFont and returns its height in 322 units.
+    function pickLabelFont(dc, height) {
+        _labelFont =
+            height < 70
+                ? Graphics.FONT_XTINY
+                : height < 110
+                  ? Graphics.FONT_TINY
+                  : Graphics.FONT_SMALL;
+        return (dc.getFontHeight(_labelFont) * 322.0) / _height;
+    }
+
     // The label line of the current cell. The unit shares the line, and is
     // dropped if it would collide with the label.
     function drawCellLabel(dc, labelTop) {
@@ -890,8 +972,8 @@ class DashMaxField extends WatchUi.DataField {
         var unit = _data[2];
         var fits = false;
         if (unit.length() > 0) {
-            var wide = dc.getTextWidthInPixels(title, Graphics.FONT_XTINY);
-            wide += dc.getTextWidthInPixels(unit, Graphics.FONT_XTINY);
+            var wide = dc.getTextWidthInPixels(title, _labelFont);
+            wide += dc.getTextWidthInPixels(unit, _labelFont);
             fits = wide + x(6) <= x(_boxWidth - 2 * _pad);
         }
         var py = y(labelTop);
@@ -902,7 +984,7 @@ class DashMaxField extends WatchUi.DataField {
             dc.drawText(
                 x(_boxLeft + _boxWidth / 2.0),
                 py,
-                Graphics.FONT_XTINY,
+                _labelFont,
                 title,
                 Graphics.TEXT_JUSTIFY_CENTER
             );
@@ -911,7 +993,7 @@ class DashMaxField extends WatchUi.DataField {
         dc.drawText(
             x(_boxLeft + _pad),
             py,
-            Graphics.FONT_XTINY,
+            _labelFont,
             title,
             Graphics.TEXT_JUSTIFY_LEFT
         );
@@ -919,7 +1001,7 @@ class DashMaxField extends WatchUi.DataField {
             dc.drawText(
                 x(_boxLeft + _boxWidth - _pad),
                 py,
-                Graphics.FONT_XTINY,
+                _labelFont,
                 unit,
                 Graphics.TEXT_JUSTIFY_RIGHT
             );
@@ -929,11 +1011,11 @@ class DashMaxField extends WatchUi.DataField {
     // Average and maximum as a two-line column at the right of a full-width
     // cell. Narrows the room left for the value.
     function drawFullStats(dc) {
-        _valueRoom = _valueRoom - 84;
+        _valueRoom = _valueRoom - 96;
         var px = x(_boxLeft + _boxWidth - _pad);
         for (var s = 0; s < 2; s += 1) {
             var line = (s == 0 ? "AVG " : "MAX ") + _stats[s];
-            var font = fit(dc, line, 78, _valueHeight / 2.0);
+            var font = fit(dc, line, 90, _valueHeight / 2.0);
             var py = y(_valueHeight / 2.0) - dc.getFontHeight(font);
             py = y(_valueTop + (s * _valueHeight) / 2.0) + (py > 0 ? py / 2 : 0);
             dc.drawText(px, py, font, line, Graphics.TEXT_JUSTIFY_RIGHT);
@@ -948,12 +1030,12 @@ class DashMaxField extends WatchUi.DataField {
     function drawHalfStats(dc) {
         var average = "AVG " + _stats[0];
         var most = "MAX " + _stats[1];
-        var stackWide = dc.getTextWidthInPixels(average, Graphics.FONT_XTINY);
-        var lineTall = dc.getTextWidthInPixels(most, Graphics.FONT_XTINY);
+        var stackWide = dc.getTextWidthInPixels(average, Graphics.FONT_TINY);
+        var lineTall = dc.getTextWidthInPixels(most, Graphics.FONT_TINY);
         if (lineTall > stackWide) {
             stackWide = lineTall;
         }
-        lineTall = dc.getFontHeight(Graphics.FONT_XTINY);
+        lineTall = dc.getFontHeight(Graphics.FONT_TINY);
         // fit() takes 246-unit widths; the stack was measured in pixels.
         var beside = _valueRoom - 6 - (stackWide * 246.0) / _width;
         var font = fit(dc, _data[3], beside, _valueHeight);
@@ -961,20 +1043,20 @@ class DashMaxField extends WatchUi.DataField {
         var px = x(_boxLeft + _boxWidth - _pad);
         var py = y(_valueHeight);
         if (2 * lineTall <= py) {
-            var under = fit(dc, _data[3], _valueRoom, _valueHeight - 17);
+            var under = fit(dc, _data[3], _valueRoom, _valueHeight - 20);
             if (tall >= dc.getFontHeight(under)) {
                 under = y(_valueTop) + (py - 2 * lineTall) / 2;
                 dc.drawText(
                     px,
                     under,
-                    Graphics.FONT_XTINY,
+                    Graphics.FONT_TINY,
                     average,
                     Graphics.TEXT_JUSTIFY_RIGHT
                 );
                 dc.drawText(
                     px,
                     under + lineTall,
-                    Graphics.FONT_XTINY,
+                    Graphics.FONT_TINY,
                     most,
                     Graphics.TEXT_JUSTIFY_RIGHT
                 );
@@ -1002,10 +1084,10 @@ class DashMaxField extends WatchUi.DataField {
             }
         }
         // One small line under the value, shortened if it is too wide.
-        _valueHeight = _valueHeight - 17;
+        _valueHeight = _valueHeight - 20;
         average = average + "  " + most;
         if (
-            dc.getTextWidthInPixels(average, Graphics.FONT_XTINY) >
+            dc.getTextWidthInPixels(average, Graphics.FONT_TINY) >
             x(_valueRoom)
         ) {
             average = "A " + _stats[0] + "  M " + _stats[1];
@@ -1016,7 +1098,7 @@ class DashMaxField extends WatchUi.DataField {
             dc.drawText(
                 px,
                 py,
-                Graphics.FONT_XTINY,
+                Graphics.FONT_TINY,
                 average,
                 Graphics.TEXT_JUSTIFY_CENTER
             );
@@ -1025,7 +1107,7 @@ class DashMaxField extends WatchUi.DataField {
             dc.drawText(
                 px,
                 py,
-                Graphics.FONT_XTINY,
+                Graphics.FONT_TINY,
                 average,
                 Graphics.TEXT_JUSTIFY_LEFT
             );
@@ -1067,11 +1149,13 @@ class DashMaxField extends WatchUi.DataField {
         // Short rows tuck the label closer to the top edge.
         var compact = _boxHeight < 70;
         _pad = _half ? 8 : 12;
-        _valueRoom = _boxWidth - 2 * _pad;
-        _valueTop = _boxTop + (compact ? 17 : 26);
-        _valueHeight = _boxHeight - (compact ? 19 : 34);
+        pickLabelFont(dc, _boxHeight);
         dc.setColor(_cellInk, Graphics.COLOR_TRANSPARENT);
-        drawCellLabel(dc, _boxTop + (compact ? 2 : 8));
+        _valueRoom = _boxWidth - 2 * _pad;
+        _valueTop = _boxTop + (compact ? 2 : 6);
+        drawCellLabel(dc, _valueTop);
+        _valueTop = _valueTop + pickLabelFont(dc, _boxHeight);
+        _valueHeight = _boxTop + _boxHeight - _valueTop - (compact ? 2 : 6);
         if (_stats != null) {
             if (_half) {
                 // Needs a row at least 80 px tall.

@@ -23,7 +23,18 @@ test('designer bootstrap affects only generated build and can use mock data',()=
   const design=parseDesignLaunchArgs(['--server=https://example.com','--design=abcdef123456']);
   const generated=prepareBuildProject(project,false,1,design);
   const code=readFileSync(path.join(generated,'source','BuildMode.mc'),'utf8');
-  assert.match(code,/DESIGN_SYNC = true/);assert.match(code,/ACTIVITY_DATA = false/);assert.match(code,/DESIGN_ID = "abcdef123456"/);assert.match(code,/DESIGN_SERVER = "https:\/\/example.com"/);
+  assert.match(code,/DESIGN_SYNC = true/);assert.match(code,/COLOR_TEST = false/);assert.match(code,/ACTIVITY_DATA = false/);assert.match(code,/DESIGN_ID = "abcdef123456"/);assert.match(code,/DESIGN_SERVER = "https:\/\/example.com"/);
   assert.equal(readFileSync(path.join(project,'source','BuildMode.mc'),'utf8'),'original');
+ }finally{rmSync(project,{recursive:true,force:true})}
+});
+
+test('colour test build goes to its own generated project',()=>{
+ const project=mkdtempSync(path.join(tmpdir(),'dashmax-color-build-'));
+ try{
+  for(const dir of ['source','test','resources'])mkdirSync(path.join(project,dir));
+  writeFileSync(path.join(project,'manifest.xml'),'<manifest/>');writeFileSync(path.join(project,'monkey.jungle'),'');
+  const generated=prepareBuildProject(project,false,1,null,true);
+  assert.match(generated,/color-project$/);
+  assert.match(readFileSync(path.join(generated,'source','BuildMode.mc'),'utf8'),/COLOR_TEST = true/);
  }finally{rmSync(project,{recursive:true,force:true})}
 });

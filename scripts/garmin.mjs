@@ -73,7 +73,7 @@ function checkSdk() {
   console.log(`SDK: ${sdk}\nTarget: edge840\nProject: ${project}`);
 }
 
-function build(tests, activityData = false, cadenceDivisor = 1, design = null) {
+function build(tests, activityData = false, cadenceDivisor = 1, design = null, colorTest = false) {
   const key = process.env.CIQ_DEVELOPER_KEY || path.join(project, '.keys', 'developer_key.der');
   if (!existsSync(key)) {
     if (process.env.CIQ_DEVELOPER_KEY) throw new Error('CIQ_DEVELOPER_KEY points to a missing file.');
@@ -87,8 +87,8 @@ function build(tests, activityData = false, cadenceDivisor = 1, design = null) {
     console.log('Created an ignored local development signing key.');
   }
   mkdirSync(path.join(project, 'bin'), { recursive: true });
-  const program = path.join(project, 'bin', tests ? 'DashMax-tests.prg' : design ? 'DashMax-design.prg' : activityData ? 'DashMax-fit.prg' : 'DashMax.prg');
-  const buildProject = prepareBuildProject(project, activityData, cadenceDivisor, design);
+  const program = path.join(project, 'bin', colorTest ? 'DashMax-colors.prg' : tests ? 'DashMax-tests.prg' : design ? 'DashMax-design.prg' : activityData ? 'DashMax-fit.prg' : 'DashMax.prg');
+  const buildProject = prepareBuildProject(project, activityData, cadenceDivisor, design, colorTest);
   console.log(activityData ? 'Data source: ACTIVITY / FIT PLAYBACK (forced)' : 'Data source: app properties (mock by default)');
   if (activityData) console.log(`Replay cadence divisor: ${cadenceDivisor}`);
   // Use the SDK Java compiler directly; avoids Windows .bat quoting for builds.
@@ -137,14 +137,14 @@ async function launchSimulator() {
 }
 
 try {
-  if (!['doctor', 'build', 'sim', 'fit', 'design', 'test'].includes(action)) throw new Error('Usage: node scripts/garmin.mjs doctor|build|sim|fit|design|test');
+  if (!['doctor', 'build', 'sim', 'fit', 'design', 'test', 'colors'].includes(action)) throw new Error('Usage: node scripts/garmin.mjs doctor|build|sim|fit|design|test|colors');
   const design = action === 'design' ? parseDesignLaunchArgs(process.argv.slice(3)) : null;
   const cadenceDivisor = design ? design.cadenceDivisor : cadenceDivisorFor(action, process.argv.slice(3));
   checkSdk();
   if (action !== 'doctor') {
     const tests = action === 'test';
-    const program = build(tests, design ? design.fit : action === 'fit', cadenceDivisor, design);
-    if (action === 'sim' || action === 'fit' || action === 'design' || tests) {
+    const program = build(tests, design ? design.fit : action === 'fit', cadenceDivisor, design, action === 'colors');
+    if (action === 'sim' || action === 'fit' || action === 'design' || action === 'colors' || tests) {
       const offset = existsSync(simulatorLog) ? statSync(simulatorLog).size : 0;
       await launchSimulator();
       console.log(`Simulator console log: ${simulatorLog}`);

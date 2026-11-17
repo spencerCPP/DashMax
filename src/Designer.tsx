@@ -53,8 +53,8 @@ function Preview({ rows, background, foreground, center }: { rows: Row[]; backgr
         const tall = band * .45;
         const withStats = cell.stats !== false && box.height >= GRAPH_STATS_MIN_HEIGHT;
         return <div key={`${r}-${c}`} className="design-cell" style={{ left: cell.left, top: box.top, width: cell.width, height: box.height, padding: '6px 12px 4px', borderTop: r ? '1px solid' : undefined, borderColor: foreground }}>
-          <div className="design-label"><span>{metric.label}</span><span>{metric.unit}</span></div>
-          <div className="design-value" style={{ height: tall }}><strong style={{ fontSize: Math.min(tall * 1.05, (withStats ? 150 : 222) / (metric.sample.length * .42)), lineHeight: `${tall}px`, textAlign: center ? 'center' : undefined }}>{metric.sample}</strong>{withStats && <div className="design-stats"><span>AVG {metric.stats![0]}</span><span>MAX {metric.stats![1]}</span></div>}</div>
+          <div className="design-label" style={{ fontSize: box.height >= 110 ? 13 : 11, lineHeight: `${box.height >= 110 ? 18 : 15}px` }}><span>{metric.label}</span><span>{metric.unit}</span></div>
+          <div className="design-value" style={{ height: tall }}><strong style={{ fontSize: Math.min(tall * 1.05, (withStats ? 126 : 222) / (metric.sample.length * .42)), lineHeight: `${tall}px`, textAlign: center ? 'center' : undefined }}>{metric.sample}</strong>{withStats && <div className="design-stats"><span>AVG {metric.stats![0]}</span><span>MAX {metric.stats![1]}</span></div>}</div>
           <Trend metric={cell.metric}/>
         </div>;
       }
@@ -69,10 +69,10 @@ function Preview({ rows, background, foreground, center }: { rows: Row[]; backgr
       const inner = cell.width - 2 * pad;
       const besideSize = Math.min(valueHeight * 1.05, (inner - 50) / digits);
       const beside = under !== null && besideSize >= Math.min((valueHeight - 17) * 1.05, inner / digits);
-      const tall = valueHeight - (under && !beside ? 17 : 0);
-      const size = beside ? besideSize : Math.max(11, Math.min(tall * 1.05, (inner - (stats ? 84 : 0)) / digits));
+      const tall = valueHeight - (under && !beside ? 20 : 0);
+      const size = beside ? besideSize : Math.max(11, Math.min(tall * 1.05, (inner - (stats ? 96 : 0)) / digits));
       return <div key={`${r}-${c}`} className="design-cell" style={{ left: cell.left, top: box.top, width: cell.width, height: box.height, padding: `${compact ? 2 : 8}px ${pad}px`, background: fill, color: fill ? '#000000' : undefined, borderTop: r ? '1px solid' : undefined, borderLeft: c ? '1px solid' : undefined, borderColor: foreground }}>
-        <div className="design-label">{center ? <span>{half ? metric.short : metric.label} {metric.unit}</span> : <><span>{half ? metric.short : metric.label}</span><span>{metric.unit}</span></>}</div>
+        <div className="design-label" style={{ fontSize: box.height < 70 ? 9 : box.height < 110 ? 11 : 13, lineHeight: `${box.height < 70 ? 15 : box.height < 110 ? 17 : 19}px` }}>{center ? <span>{half ? metric.short : metric.label} {metric.unit}</span> : <><span>{half ? metric.short : metric.label}</span><span>{metric.unit}</span></>}</div>
         <div className="design-value"><strong style={{ fontSize: size, height: tall, lineHeight: `${tall}px` }}>{metric.sample}</strong>{stats && <div className="design-stats"><span>AVG {stats[0]}</span><span>MAX {stats[1]}</span></div>}{under && beside && <div className="design-beside"><span>AVG {under[0]}</span><span>MAX {under[1]}</span></div>}</div>
         {under && !beside && <div className="design-under">AVG {under[0]}&nbsp;&nbsp;MAX {under[1]}</div>}
       </div>;

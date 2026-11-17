@@ -581,6 +581,15 @@ Optional FIT-backed version:
 
     npm run garmin:design -- --server=https://YOUR_SERVER --design=YOUR_DESIGN_ID --fit --cadence-divisor=2
 
+### Colour test screen
+
+    npm run garmin:colors
+
+Builds `garmin/bin/DashMax-colors.prg`: each zone colour (rows 1-7)
+beside mixes with 25, 45 and 65 percent white (columns A-D), for
+picking colours that read well on the Edge's own screen. Copy it to
+`GARMIN/APPS` like the design build.
+
 ### Tests
 
     npm test
