@@ -215,8 +215,9 @@ original dashboard. The web preview shows example colours.
 Garmin has no gradient zones in the rider profile or the Connect
 IQ API. The grade cell's zone colour uses the fixed bands that
 Garmin's ClimbPro page draws: up to 3% green, 6% yellow, 9%
-orange, 12% red, and steeper dark red. Flat and downhill stay
-uncoloured. The bands come from the "Understanding ClimbPro on the
+orange, 12% red, and steeper dark red. Anything under 1%,
+including downhill, stays uncoloured; ClimbPro itself has no such
+cut-off, but the computed grade is noisy on flat roads. The bands come from the "Understanding ClimbPro on the
 Edge" guide on Garmin's forum, not from the owner's manual. The
 colours (#7dbb56, #efad43, #df6336, #da3a32, #75140c) are sampled
 from Garmin's climb-category swatches supplied by the user.

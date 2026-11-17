@@ -55,11 +55,12 @@ module ZoneColors {
 
     // Colour for a road grade in percent, using the bands Garmin's ClimbPro
     // page draws: up to 3 green, 6 yellow, 9 orange, 12 red, steeper dark red.
-    // An exact band top stays in the lower band. Flat and downhill are left
-    // uncoloured. Colours are sampled from Garmin's own climb-category
+    // An exact band top stays in the lower band. Anything under 1 percent,
+    // including downhill, is left uncoloured so that a flat road with a
+    // noisy reading does not flicker green. Colours are sampled from Garmin's own climb-category
     // swatches. Returns [background, use white foreground] or null.
     function grade(percent) {
-        if (percent == null || percent <= 0) {
+        if (percent == null || percent < 1) {
             return null;
         }
         if (percent <= 3) {
