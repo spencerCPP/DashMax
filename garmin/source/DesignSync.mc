@@ -1,3 +1,4 @@
+using Toybox.Activity;
 using Toybox.Application;
 using Toybox.Communications;
 using Toybox.Lang;
@@ -98,6 +99,11 @@ module SyncWindow {
     function due(now, last) {
         return last == null || now < last || now - last >= INTERVAL;
     }
+    // A ride is in progress from Start until it is saved or discarded, so a
+    // paused or stopped timer still counts. Unknown state does not.
+    function riding(timerState) {
+        return timerState != null && timerState != Activity.TIMER_STATE_OFF;
+    }
 }
 
 class DesignSync {
@@ -108,6 +114,7 @@ class DesignSync {
     var _lastPoll = null;
     var _closed = false;
     var _busy = false;
+    var _riding = false;
 
     function initialize(server, id) {
         _server = server;
@@ -128,7 +135,13 @@ class DesignSync {
         }
     }
 
-    function poll() {
+    // The layout must never change mid-ride: no requests are sent while a
+    // ride is in progress, and a response that lands after Start is dropped.
+    function poll(riding) {
+        if (riding && !_riding) {
+            System.println("Design sync off while a ride is in progress");
+        }
+        _riding = riding;
         if (_closed) {
             return;
         }
@@ -143,7 +156,7 @@ class DesignSync {
             );
             return;
         }
-        if (_busy || !SyncWindow.due(now, _lastPoll)) {
+        if (_riding || _busy || !SyncWindow.due(now, _lastPoll)) {
             return;
         }
         _lastPoll = now;
@@ -179,6 +192,12 @@ class DesignSync {
                 PersistedContent.Iterator
     ) as Void {
         _busy = false;
+        if (_riding) {
+            System.println(
+                "Design response ignored during ride; keeping current screen"
+            );
+            return;
+        }
         if (code != 200) {
             System.println(
                 "Design HTTP request failed: " +

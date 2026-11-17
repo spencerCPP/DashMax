@@ -23,3 +23,13 @@ export function prepareBuildProject(project, activityData, cadenceDivisor = 1, d
     `module BuildMode {\n    const ACTIVITY_DATA = ${activityData};\n    const CADENCE_DIVISOR = ${cadenceDivisor};\n    const DESIGN_SYNC = ${Boolean(design)};\n    const DESIGN_SERVER = ${JSON.stringify(design?.server || "")};\n    const DESIGN_ID = ${JSON.stringify(design?.id || "")};\n}\n`);
   return destination;
 }
+
+// monkeydo's exit code is not a reliable test verdict, so read the runner's
+// summary line. Returns null when there is no summary to judge by.
+export function testOutcome(output) {
+  if (/^FAILED\b/m.test(output)) return false;
+  const passed = /^PASSED \(passed=(\d+), failed=0, errors=0\)/m.exec(output);
+  if (!passed) return null;
+  // An empty run is not a pass.
+  return Number(passed[1]) > 0;
+}

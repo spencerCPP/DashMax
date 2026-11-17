@@ -8,7 +8,7 @@ import { spawnSync, spawn } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import net from 'node:net';
 import { parseDesignLaunchArgs } from './design-launch.mjs';
-import { prepareBuildProject, cadenceDivisorFor } from './garmin-project.mjs';
+import { prepareBuildProject, cadenceDivisorFor, testOutcome } from './garmin-project.mjs';
 
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'garmin');
 const simulatorLog = path.join(project, 'bin', 'simulator.log');
@@ -22,7 +22,11 @@ const config = path.join(ciqRoot, 'current-sdk.cfg');
 const sdk = process.env.CIQ_SDK_HOME || (existsSync(config) ? readFileSync(config, 'utf8').trim() : '');
 const action = process.argv[2] || 'doctor';
 
-function run(command, args, cwd = project) {
+// With capture, output is echoed after the command ends and returned with the
+// exit status instead of throwing, so the caller can judge the result.
+function run(command, args, cwd = project, capture = false) {
+  const stdio = capture ? ['inherit', 'pipe', 'pipe'] : 'inherit';
+  const extra = capture ? { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 } : {};
   let result;
   if (windows && /\.bat$/i.test(command)) {
     // cmd.exe expands these even inside quotes; reject rather than execute them.
@@ -32,12 +36,17 @@ function run(command, args, cwd = project) {
     };
     const line = `"${[command, ...args].map(quote).join(' ')}"`;
     result = spawnSync(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', line], {
-      cwd, stdio: 'inherit', windowsVerbatimArguments: true,
+      cwd, stdio, ...extra, windowsVerbatimArguments: true,
     });
   } else {
-    result = spawnSync(command, args, { cwd, stdio: 'inherit' });
+    result = spawnSync(command, args, { cwd, stdio, ...extra });
   }
   if (result.error) throw result.error;
+  if (capture) {
+    process.stdout.write(result.stdout || '');
+    process.stderr.write(result.stderr || '');
+    return { status: result.status, output: `${result.stdout || ''}\n${result.stderr || ''}` };
+  }
   if (result.status !== 0) throw new Error(`${path.basename(command)} failed (exit ${result.status ?? result.signal}).`);
 }
 
@@ -131,9 +140,19 @@ try {
         [fileURLToPath(new URL('./simulator-output.mjs', import.meta.url)), simulatorLog, String(offset)],
         { stdio: ['ignore', 'inherit', 'inherit'] });
       follower.on('error', error => console.error(`Console streaming failed: ${error.message}`));
+      const monkeydo = path.join(sdk, 'bin', windows ? 'monkeydo.bat' : 'monkeydo');
       try {
-        run(path.join(sdk, 'bin', windows ? 'monkeydo.bat' : 'monkeydo'),
-          [program, 'edge840', ...(tests ? [windows ? '/t' : '-t'] : [])]);
+        if (tests) {
+          const { status, output } = run(monkeydo, [program, 'edge840', windows ? '/t' : '-t'], project, true);
+          // Results may arrive on monkeydo's output or the simulator console.
+          const logged = existsSync(simulatorLog) ? readFileSync(simulatorLog).subarray(offset).toString('utf8') : '';
+          const verdict = testOutcome(`${output}\n${logged}`);
+          if (verdict === false) throw new Error('Native tests failed.');
+          if (verdict === null && status !== 0) throw new Error(`monkeydo failed (exit ${status}) without a test summary.`);
+          if (verdict === null) throw new Error('No test summary found; an empty run is not a pass.');
+        } else {
+          run(monkeydo, [program, 'edge840']);
+        }
       } finally { follower.kill(); }
     }
   }

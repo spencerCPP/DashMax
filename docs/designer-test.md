@@ -49,7 +49,7 @@ Replace both placeholders with your tunnel URL and the ID shown by the web app. 
 
 This minimum test uses **mock telemetry by default**, so no FIT replay or sensors are needed to prove configuration transfer. Native speed/distance units still follow Garmin's setting. There is no application-settings menu to find; the URL and ID are bootstrapped into the ignored generated `garmin/bin/design-project` copy for this development test. The normal DashMax source and balanced layout are retained.
 
-The field calls `Communications.makeWebRequest` with the `Communications` permission, using direct data-field Communications support introduced in API 5.0. The project targets API 5.2.2 or newer. Configuration is requested in a **startup sync window**: the cached design is shown immediately, the first request is sent when the field starts, and requests repeat approximately every **15 seconds** for **two minutes**. After that the field stops polling, logs `Design sync window closed; keeping current screen`, and keeps the last valid design until it is started again. This is not an always-running background sync service.
+The field calls `Communications.makeWebRequest` with the `Communications` permission, using direct data-field Communications support introduced in API 5.0. The project targets API 5.2.2 or newer. Configuration is requested in a **startup sync window**: the cached design is shown immediately, the first request is sent when the field starts, and requests repeat approximately every **15 seconds** for **two minutes**. After that the field stops polling, logs `Design sync window closed; keeping current screen`, and keeps the last valid design until it is started again. Sync only happens before a ride: once the activity timer has been started, no requests are sent and any late response is dropped, until the ride is saved or discarded. This is not an always-running background sync service.
 
 The native console must report:
 
@@ -63,7 +63,7 @@ The device should show the selected three metrics and background. Until a valid 
 
 1. Leave the simulator, API server, and HTTPS tunnel running.
 2. Change a metric and the background in the browser.
-3. Within two minutes of the field starting, click **Save changes**. The ID must stay the same and the revision must increment.
+3. Within two minutes of the field starting, and without starting the activity timer, click **Save changes**. The ID must stay the same and the revision must increment.
 4. Within approximately 15 seconds, require a native console message for the new revision and the corresponding device-screen changes.
 5. Do **not** rebuild or run the native launcher between these changes while the window is open. Once it has closed, later saves are picked up the next time the field starts (rerunning the launcher restarts it). This is the key proof that the web app is driving the screen rather than generating a new binary.
 
@@ -81,7 +81,7 @@ To use activity values instead of mocks:
 npm run garmin:design -- --server=https://YOUR-TUNNEL.trycloudflare.com --design=YOUR_DESIGN_ID --fit --cadence-divisor=2
 ```
 
-Use the cadence correction only for the previously confirmed doubled simulator behavior. Start the recorded activity through Garmin's FIT playback controls. Missing channels show `--`. Changing metric selections in the browser still updates the same running native program without another build.
+Use the cadence correction only for the previously confirmed doubled simulator behavior. Start the recorded activity through Garmin's FIT playback controls. Missing channels show `--`. Changing metric selections in the browser still updates the same running native program without another build, but only inside the startup window and before the activity timer starts. If playback starts the timer, sync stops and the console prints `Design sync off while a ride is in progress`, so save design changes before starting playback.
 
 ## What has and has not been validated
 

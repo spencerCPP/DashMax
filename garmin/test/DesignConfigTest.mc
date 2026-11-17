@@ -68,5 +68,11 @@ function testStartupSyncWindow(logger) {
     Test.assert(SyncWindow.open(220, 100));
     Test.assert(!SyncWindow.open(221, 100));
     Test.assert(!SyncWindow.open(99, 100));
+    // Sync is allowed only before a ride starts; paused still counts as riding.
+    Test.assert(!SyncWindow.riding(null));
+    Test.assert(!SyncWindow.riding(Toybox.Activity.TIMER_STATE_OFF));
+    Test.assert(SyncWindow.riding(Toybox.Activity.TIMER_STATE_ON));
+    Test.assert(SyncWindow.riding(Toybox.Activity.TIMER_STATE_PAUSED));
+    Test.assert(SyncWindow.riding(Toybox.Activity.TIMER_STATE_STOPPED));
     return true;
 }

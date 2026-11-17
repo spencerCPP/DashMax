@@ -23,6 +23,7 @@ class DashMaxField extends WatchUi.DataField {
     var _fonts;
     var _zones;
     var _design = null;
+    var _riding = false;
 
     function initialize() {
         DataField.initialize();
@@ -71,7 +72,10 @@ class DashMaxField extends WatchUi.DataField {
         // compute() runs even while another page is showing, so the startup
         // sync window is not lost if the field is created off-screen.
         if (_design != null) {
-            _design.poll();
+            _riding = SyncWindow.riding(
+                info has :timerState ? info.timerState : null
+            );
+            _design.poll(_riding);
         }
         var activity = activityMode();
         if (activity != _activity) {
@@ -213,7 +217,7 @@ class DashMaxField extends WatchUi.DataField {
         }
 
         if (_design != null) {
-            _design.poll();
+            _design.poll(_riding);
             drawDesign(dc, imperial, activity, missing, stopped, animate);
             return;
         }
@@ -440,7 +444,7 @@ class DashMaxField extends WatchUi.DataField {
             var unit = "";
             var value = "--";
             if (id.equals("power")) {
-                title = "3s POWER";
+                title = "POWER";
                 unit = "W";
                 value = activity
                     ? number(_ride.power, "")

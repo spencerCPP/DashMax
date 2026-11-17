@@ -1,0 +1,438 @@
+# DashMax — Project Summary
+
+## Goal
+
+Build a configurable cycling dashboard for the Garmin Edge 840,
+with a web designer that lets riders change their screen without
+rebuilding or reinstalling the Garmin application.
+
+DashMax is a full-page Connect IQ data field. It draws multiple
+metrics within one Garmin activity data page. Garmin continues to
+manage recording, activity profiles, maps, and page navigation.
+
+## What We Have Built
+
+### Browser dashboard prototype
+
+Implemented with React, TypeScript, Vite, and bundled fonts.
+
+Features include:
+
+- A 246 × 322 logical-pixel dashboard viewport.
+- Native-size and enlarged previews.
+- Prominent power and heart-rate readings.
+- Whole-ride averages.
+- Cadence, speed, distance, and elapsed time.
+- A compact power-history graph.
+- Light/dark themes and metric/imperial demo controls.
+- Deterministic and animated mock telemetry.
+- Long-distance and long-duration layout test cases.
+- Missing-sensor, paused, and missing-course demo states.
+
+Wind was initially prototyped, then removed.
+The footer now contains rider heading instead.
+
+### Native Garmin data field
+
+A separate Monkey C implementation lives under `garmin/`.
+
+It targets Edge 840 and supports:
+
+- A full-page, single-field Garmin layout.
+- Mock telemetry or activity data supplied by Garmin.
+- FIT playback through Garmin’s simulator.
+- Trailing three-second power averaging.
+- Power-history graphing.
+- Missing-data handling.
+- GPS travel heading when available and moving.
+- Garmin-native distance and speed unit preferences.
+- Garmin’s selected data-field background color.
+- Individual power and HR section backgrounds based on zones.
+
+The current project requires Connect IQ API 5.2.2 or newer.
+
+### Garmin zone integration
+
+Zone thresholds are read from Garmin’s user profile:
+
+- Power: `UserProfile.getPowerZones(Activity.SPORT_CYCLING)`.
+- HR: `UserProfile.getHeartRateZones2(Activity.SPORT_CYCLING)`,
+  with the legacy cycling HR API as a guarded fallback.
+
+The manifest includes the `UserProfile` permission.
+
+No generic FTP percentages or hardcoded physiological thresholds
+are substituted when Garmin limits are unavailable.
+
+Only the power and HR sections receive zone colors.
+No additional zone labels are displayed.
+Other sections retain Garmin’s selected background.
+
+The SDK documents HR limits as:
+
+1. Minimum zone 1.
+2. Maximum zone 1.
+3. Maximum zone 2.
+4. Maximum zone 3.
+5. Maximum zone 4.
+6. Maximum zone 5.
+
+Exact upper-bound values remain in the lower zone.
+
+The power adapter currently expects an eight-entry min/upper-limit
+array for seven zones. Other formats remain neutral and are logged
+for verification.
+
+#### Reference colors supplied by the user
+
+| Zone | Power | Heart rate |
+| --- | --- | --- |
+| 1 | #a6a6a6 | #a6a6a6 |
+| 2 | #3b97f3 | #3b97f3 |
+| 3 | #40c35d | #40c35d |
+| 4 | #faca48 | #f27716 |
+| 5 | #f27716 | #e02c2c |
+| 6 | #e02c2c | — |
+| 7 | #6f42f3 | — |
+
+Text is white on red/purple and black on the other backgrounds.
+The Edge display may quantize RGB colors to its hardware palette.
+
+## FIT Playback Investigation
+
+A user-provided cycling FIT file was decoded with Garmin’s FIT SDK.
+
+Findings:
+
+- File integrity checks passed.
+- Activity type was cycling/road.
+- Recorded cadence averaged approximately 90 rpm.
+- Maximum recorded cadence was 129 rpm.
+- At a sample matching the simulator screenshot:
+  - Recorded cadence: 86 rpm.
+  - Displayed cadence: 172 rpm.
+  - HR: 148 bpm.
+  - Speed: approximately 23.2 km/h.
+  - Three-second power: approximately 59 W.
+
+The other readings matched, confirming doubled cadence during
+that simulator playback.
+
+DashMax’s ordinary activity adapter preserves supplied cadence.
+An explicit replay workaround was added:
+
+    npm run garmin:fit -- --cadence-divisor=2
+
+This adjusts cadence only. It does not modify the FIT file or power.
+Use the correction only where doubling has been confirmed.
+
+## Wind Decision
+
+The FIT file contained temperature samples but no weather messages
+or wind fields.
+
+We discussed obtaining wind from Garmin weather or an external
+weather provider, but removed the feature for now.
+
+Current direction indicator:
+
+- Uses GPS travel heading.
+- Shows a north-up arrow, compass direction, and bearing.
+- Shows NO COURSE if heading is missing or speed is below 1 m/s.
+- Is not a stationary magnetic compass or navigation instruction.
+
+## Web-to-Garmin Configuration Experiment
+
+We built a minimal end-to-end transfer test.
+
+The web designer lets a user:
+
+1. Select exactly three different metrics.
+2. Select a background color.
+3. Save a design.
+4. Edit and save that same design again.
+
+Supported metrics:
+
+- Power.
+- Heart rate.
+- Distance.
+- Cadence.
+- Speed.
+- Elapsed time.
+
+The power row is labelled POWER on both the web preview and the
+device.
+
+The test uses three fixed rows.
+It is not yet a freeform layout editor.
+
+### Configuration service
+
+A Node server serves the web build and JSON API.
+
+Endpoints:
+
+    POST /api/designs
+    GET /api/designs/:id
+    PUT /api/designs/:id
+
+Each saved design has:
+
+- A unique design ID.
+- A schema version.
+- A revision number.
+- Three metric identifiers.
+- A background RGB value.
+- A contrasting foreground RGB value.
+
+Example:
+
+    {
+      "version": 1,
+      "id": "abcdef123456",
+      "revision": 2,
+      "fields": ["power", "distance", "elapsed"],
+      "background": 16776960,
+      "foreground": 0
+    }
+
+Designs persist locally in the ignored directory:
+
+    .dashmax-designs/
+
+The service stores layout settings, not FIT files or ride telemetry.
+
+### Native fetch and rendering
+
+The Garmin field requests:
+
+    GET /api/designs/:id
+
+It uses `Communications.makeWebRequest()` and the
+`Communications` permission.
+
+After receiving a response, it:
+
+1. Validates the schema and design ID.
+2. Detects a changed revision.
+3. Normalizes accepted numeric values.
+4. Stores the configuration in `Application.Storage`.
+5. Requests a redraw.
+6. Renders the selected metrics using native Garmin graphics.
+
+The browser preview is not streamed to Garmin.
+The downloaded configuration contains data, not executable code.
+
+Invalid responses and network failures retain the last accepted
+configuration.
+
+### What We Demonstrated
+
+The user confirmed on the Edge 840 simulator that:
+
+- A saved web design was downloaded over HTTPS.
+- The selected metrics appeared on the native screen.
+- The chosen background color appeared.
+- Native units followed Garmin’s setting.
+- Editing and saving the same design updated the running field.
+- No rebuild, reinstall, or Store publication was required for
+  those configuration changes.
+
+This validates the basic web → HTTPS → native rendering workflow.
+
+### Development Connectivity
+
+The test setup uses:
+
+- A local Node designer/API server.
+- A Cloudflare Quick Tunnel providing public HTTPS.
+- A development launcher that embeds the server URL and design ID
+  into an ignored generated build.
+
+The tunnel URL is temporary.
+A production version would use a stable backend.
+
+On the simulator, requests use the Mac’s Internet connection.
+
+On a physical Edge, the intended path is through the paired phone
+and Garmin Connect’s Internet proxy. That hardware path still
+needs testing.
+
+## Sync Strategy
+
+### Current implementation
+
+The field syncs in a short startup window, and only before a ride:
+
+1. Display the cached layout immediately.
+2. Request the latest design when DashMax starts.
+3. Repeat every 15 seconds for up to two minutes, whether or not
+   an earlier request succeeded.
+4. Stop polling when the window expires.
+5. Retain the last valid layout if connectivity fails.
+
+A design must never change mid-ride. Once the activity timer has
+been started, no requests are sent and a response that arrives
+late is dropped. A paused or stopped timer still counts as riding;
+sync is possible again only after the ride is saved or discarded
+and the field starts a new window.
+
+A rider who powers on and starts riding immediately keeps the
+cached design for that ride.
+
+The window is driven from `compute()` as well as the draw path, so
+it is not lost if the field is created while another page shows.
+Whether Garmin calls `compute()` for off-screen fields, and when it
+creates or retains a field instance, still needs verifying on a
+physical Edge.
+
+DashMax can display before the rider presses Start; activity
+recording does not need to be running.
+
+The earlier experiment polled every 15 seconds for as long as the
+field was active. That proved live editing and has been replaced.
+
+### Alternatives Discussed
+
+- Continuous polling: worked, but created unnecessary recurring
+  traffic and allowed mid-ride layout changes. Replaced.
+- Touch-based manual sync: insufficient as the only mechanism
+  because the product should support non-touch devices.
+- Page-navigation gestures: possible, but reliability and
+  accidental activation need investigation.
+- Connect IQ settings-based sync: possible candidate, but adds
+  user steps and requires delivery/lifecycle validation.
+- Companion phone app with push: rejected as a product requirement.
+
+There is no confirmed server-push channel through Garmin Connect
+alone for this app.
+
+## Security and Production Ownership
+
+The current configuration service is a single-user prototype.
+
+Anyone who obtains a design ID can read and update that design.
+Every device linked to it could receive those changes.
+
+Before broader release, implement:
+
+- Authenticated design ownership.
+- Server-enforced authorization for edits.
+- Read-only device access credentials.
+- Device pairing and revocation.
+- View-only sharing.
+- “Use this design” creating an independent owned copy.
+
+A design ID is an identifier, not authorization.
+
+## Important Compatibility Fixes
+
+Issues encountered and corrected included:
+
+- Unsupported `Math.abs` calls in Monkey C.
+- Floating-point modulo in heading normalization.
+- Web-request callback typing requiring the SDK’s exact union.
+- String comparisons requiring `.equals()` for decoded values.
+- Numeric validation across Garmin JSON numeric types.
+- Simulator output remaining attached to its original process
+  output stream.
+- Native tests calling `Test.assertEqual` with a null value, which
+  raises a type error; null checks now use `Test.assert(x == null)`.
+- Native tests comparing a Float with a Number literal, which are
+  never equal.
+- `monkeydo` returning a non-zero exit code on a fully passing test
+  run; the launcher now reads the runner's PASSED/FAILED summary.
+
+The launcher now captures simulator output in:
+
+    garmin/bin/simulator.log
+
+Each launcher run streams new log output.
+Existing simulators need one restart when adopting that logging
+setup so output capture can be established.
+
+## Validation Status
+
+### Confirmed
+
+- Web build and type checking.
+- Browser controls and layout checks.
+- API validation, revisions, and persistence tests.
+- Local native compilation after reported compatibility fixes.
+- FIT activity values reaching the native field.
+- Web design downloads and native rendering in the simulator.
+- Live updates to the running simulator without rebuilding.
+- Full native regression suite on the local SDK (twelve tests).
+- Startup sync window opening on launch and closing after two
+  minutes in the simulator.
+
+### Implemented but Still Requiring Validation
+
+- Offline cache restoration after restarting the native field.
+- Saves made after the window closes being ignored until the next
+  start.
+- No sync while a ride is in progress.
+- Launcher test verdict taken from the runner summary.
+- Garmin zone-array formats and zone-color boundary behavior.
+- Heading behavior across actual device conditions.
+- Physical Edge → paired phone → HTTPS service connectivity.
+- Device lifecycle behavior before and during an activity.
+
+### Not Yet Built
+
+- Stable hosted production backend.
+- Authentication and design ownership.
+- Production device pairing/settings flow.
+- Expanded constrained layout designer.
+- Store release and distribution workflow.
+
+## Useful Commands
+
+### Browser dashboard
+
+    npm ci
+    npm run dev
+
+### Designer and API
+
+    npm run designer
+
+### Native mock dashboard
+
+    npm run garmin:sim
+
+### Native FIT playback
+
+    npm run garmin:fit -- --cadence-divisor=2
+
+### Web-connected three-field experiment
+
+    npm run garmin:design -- --server=https://YOUR_SERVER --design=YOUR_DESIGN_ID
+
+Optional FIT-backed version:
+
+    npm run garmin:design -- --server=https://YOUR_SERVER --design=YOUR_DESIGN_ID --fit --cadence-divisor=2
+
+### Tests
+
+    npm test
+    npm run garmin:test
+
+### Detailed Local Setup
+
+See:
+
+- README.md
+- garmin/README.md
+- docs/designer-test.md
+
+## Recommended Next Steps
+
+1. Validate offline cache recovery and the no-sync-during-ride
+   rule in the simulator.
+2. Test initialization and networking on a physical Edge.
+3. Deploy a stable hosted backend to replace the temporary tunnel.
+4. Expand the web designer using constrained, native-supported
+   layouts and a versioned shared configuration schema.
+5. Add ownership and read-only device authorization.

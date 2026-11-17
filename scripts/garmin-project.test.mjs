@@ -41,3 +41,11 @@ test('cadence correction is explicit, constrained, and available only for FIT re
   assert.throws(() => cadenceDivisorFor('sim', ['--cadence-divisor=2']));
   assert.throws(() => cadenceDivisorFor('test', ['--cadence-divisor=2']));
 });
+
+test('test verdict comes from the runner summary, not the exit code', async () => {
+  const { testOutcome } = await import('./garmin-project.mjs');
+  assert.equal(testOutcome('Ran 12 tests\n\nPASSED (passed=12, failed=0, errors=0)\n'), true);
+  assert.equal(testOutcome('Ran 11 tests\n\nFAILED (passed=4, failed=0, errors=7)\n'), false);
+  assert.equal(testOutcome('PASSED (passed=0, failed=0, errors=0)\n'), false);
+  assert.equal(testOutcome('BUILD SUCCESSFUL\n'), null);
+});
