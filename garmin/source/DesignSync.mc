@@ -199,7 +199,7 @@ module DesignConfig {
 // quickly for a while after a change arrives, so an editing session previews
 // promptly without a manual toggle.
 module SyncPace {
-    const SLOW = 30;
+    const SLOW = 10;
     const FAST = 5;
     const FAST_FOR = 180;
 

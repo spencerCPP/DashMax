@@ -131,11 +131,11 @@ function testDesignRowRules(logger) {
 (:test)
 function testSyncPacing(logger) {
     // Slow by default, fast for three minutes after a change arrives.
-    Test.assertEqual(SyncPace.interval(100, null), 30);
+    Test.assertEqual(SyncPace.interval(100, null), 10);
     Test.assertEqual(SyncPace.interval(100, 100), 5);
     Test.assertEqual(SyncPace.interval(280, 100), 5);
-    Test.assertEqual(SyncPace.interval(281, 100), 30);
-    Test.assertEqual(SyncPace.interval(50, 100), 30);
+    Test.assertEqual(SyncPace.interval(281, 100), 10);
+    Test.assertEqual(SyncPace.interval(50, 100), 10);
     // First attempt is immediate, then at the current interval.
     Test.assert(SyncPace.due(100, null, 30));
     Test.assert(!SyncPace.due(129, 100, 30));

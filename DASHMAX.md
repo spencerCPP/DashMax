@@ -348,7 +348,7 @@ The field syncs whenever no ride is in progress:
 
 1. Display the cached layout immediately.
 2. Request the latest design when DashMax starts.
-3. Check again every 30 seconds.
+3. Check again every 10 seconds.
 4. After a new revision arrives, check every 5 seconds for three
    minutes, so an editing session previews quickly.
 5. Retain the last valid layout if connectivity fails, and keep
@@ -364,7 +364,7 @@ startup, a phone that connects late is picked up, and an editing
 session needs no time limit, toggle, or power cycle.
 
 A device left on the DashMax page without starting a ride keeps
-making a small request every 30 seconds through the phone.
+making a small request every 10 seconds through the phone.
 
 Polling is driven from `compute()` as well as the draw path.
 Whether Garmin calls `compute()` for off-screen fields, and when it
@@ -400,7 +400,10 @@ there.
 
 ### Future option: designer-signalled fast polling
 
-The first edit of a session can take up to 30 seconds to appear.
+The first edit of a session can take up to 10 seconds to appear,
+plus the time the phone link takes. The base interval was 30
+seconds at first; a 64-second save-to-screen time measured on the
+Edge was too slow, so it was cut to 10.
 If that proves annoying, the server could add an "editor active"
 flag to the design response while the designer page is open in a
 browser, and the device would poll fast whenever it sees the flag.
@@ -486,7 +489,7 @@ setup so output capture can be established.
 
 ### Implemented but Still Requiring Validation
 
-- Paced pre-ride polling (30 seconds, 5 seconds after a change),
+- Paced pre-ride polling (10 seconds, 5 seconds after a change),
   which replaced the startup window.
 - Row-builder rendering on the device: text sizing in short and
   half-width cells and the graph row.

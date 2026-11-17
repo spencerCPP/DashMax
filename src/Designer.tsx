@@ -133,7 +133,7 @@ export function Designer() {
       </div>
       <section className="designer-next">
         <h2>Connect a device</h2>
-        <p>Keep this server running. Use the HTTPS tunnel and <code>garmin:design</code> steps in <code>docs/designer-test.md</code>. Before a ride, the field checks for a new design every 30 seconds, and every 5 seconds for a few minutes after a change. Nothing changes once the ride timer has started.</p>
+        <p>Keep this server running. Use the HTTPS tunnel and <code>garmin:design</code> steps in <code>docs/designer-test.md</code>. Before a ride, the field checks for a new design every 10 seconds, and every 5 seconds for a few minutes after a change. Nothing changes once the ride timer has started.</p>
       </section>
     </main>
   </div>;

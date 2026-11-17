@@ -49,7 +49,7 @@ Replace both placeholders with your tunnel URL and the ID shown by the web app. 
 
 This minimum test uses **mock telemetry by default**, so no FIT replay or sensors are needed to prove configuration transfer. Native speed/distance units still follow Garmin's setting. There is no application-settings menu to find; the URL and ID are bootstrapped into the ignored generated `garmin/bin/design-project` copy for this development test. The normal DashMax source and balanced layout are retained.
 
-The field calls `Communications.makeWebRequest` with the `Communications` permission, using direct data-field Communications support introduced in API 5.0. The project targets API 5.2.2 or newer. The cached design is shown immediately and the first request is sent when the field starts. After that the field checks for a new revision whenever no ride is in progress: approximately every **30 seconds** by default, and every **5 seconds** for three minutes after a change arrives, so an editing session previews quickly. Once the activity timer has been started, no requests are sent and any late response is dropped, until the ride is saved or discarded. This is foreground polling, not an always-running background sync service.
+The field calls `Communications.makeWebRequest` with the `Communications` permission, using direct data-field Communications support introduced in API 5.0. The project targets API 5.2.2 or newer. The cached design is shown immediately and the first request is sent when the field starts. After that the field checks for a new revision whenever no ride is in progress: approximately every **10 seconds** by default, and every **5 seconds** for three minutes after a change arrives, so an editing session previews quickly. Once the activity timer has been started, no requests are sent and any late response is dropped, until the ride is saved or discarded. This is foreground polling, not an always-running background sync service.
 
 The native console must report:
 
@@ -74,7 +74,7 @@ The device should show the designed rows and background. Until a valid config ar
 1. Leave the simulator, API server, and HTTPS tunnel running.
 2. Change a metric and the background in the browser.
 3. Without starting the activity timer, click **Save changes**. The ID must stay the same and the revision must increment.
-4. Within approximately 30 seconds for the first change, and 5 seconds for changes made in the next three minutes, require a native console message for the new revision and the corresponding device-screen changes.
+4. Within approximately 10 seconds for the first change, and 5 seconds for changes made in the next three minutes, require a native console message for the new revision and the corresponding device-screen changes.
 5. Do **not** rebuild or run the native launcher between these changes. This is the key proof that the web app is driving the screen rather than generating a new binary.
 
 The browser preview uses mock values and web fonts. It verifies selection/order/color, not pixel-identical Garmin typography.
