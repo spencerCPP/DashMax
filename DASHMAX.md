@@ -221,9 +221,12 @@ design as `powerZones`.
 The FTP step keeps the device in step with Garmin without manual
 entry, and matches the test rider's zones exactly. A rider whose
 zones use other percentages would see readings near a boundary
-colour as the neighbouring zone. Whether the FTP
-call returns a value on the Edge 840 is not yet confirmed; the
-server's `Device power zones:` line includes it as `ftp:`.
+colour as the neighbouring zone. The Edge 840 returns the rider's
+FTP (227 W) through `getFunctionalThresholdPower`, confirmed in
+the server's `Device power zones:` line, which reports it as
+`ftp:`. The Edge itself lists these limits as whole percents (56,
+74, 91, 104, 122, 151) under nine Coggan iLevels zones; zones 8
+and 9 hold nonsense values far above any real power.
 
 The device reports what Garmin returned for power zones with each
 design request, and the server logs it as `Device power zones:`.
