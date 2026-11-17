@@ -366,13 +366,13 @@ setup so output capture can be established.
 - Full native regression suite on the local SDK (twelve tests).
 - Startup sync window opening on launch and closing after two
   minutes in the simulator.
+- Cached design restored on restart, then replaced by a newer
+  saved revision.
+- Sync switching off when the activity timer starts.
 
 ### Implemented but Still Requiring Validation
 
-- Offline cache restoration after restarting the native field.
-- Saves made after the window closes being ignored until the next
-  start.
-- No sync while a ride is in progress.
+- A design save made mid-ride leaving the screen unchanged.
 - Launcher test verdict taken from the runner summary.
 - Garmin zone-array formats and zone-color boundary behavior.
 - Heading behavior across actual device conditions.
