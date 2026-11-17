@@ -122,6 +122,7 @@ class DesignSync {
     var _changedAt = null;
     var _busy = false;
     var _riding = false;
+    var _drawn = null;
 
     // Prefix sync messages with the device's wall-clock time so device logs
     // can be lined up against the server's.
@@ -196,6 +197,22 @@ class DesignSync {
         }
     }
 
+    // Called after the design has been drawn. Logs the first draw of each
+    // revision, which is when the rider actually sees it.
+    function displayed() {
+        if (config == null || config["revision"] == _drawn) {
+            return;
+        }
+        var first = _drawn == null;
+        _drawn = config["revision"];
+        log("Displayed revision " + _drawn.toString());
+        // Check in straight away so the server learns a new revision is on
+        // screen; the startup draw of the cached design needs no report.
+        if (!first) {
+            _lastPoll = null;
+        }
+    }
+
     // Match the SDK's callback union exactly, then narrow to JSON below.
     function received(
         code as Lang.Number,
@@ -246,8 +263,6 @@ class DesignSync {
         }
         config = data;
         _changedAt = (System.getTimer() / 1000).toNumber();
-        // Check in again straight away so the server learns of this revision.
-        _lastPoll = null;
         try {
             Application.Storage.setValue("designer.lastConfig", {
                 "server" => _server,

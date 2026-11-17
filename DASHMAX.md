@@ -300,7 +300,9 @@ revision reports the seconds since the server saved it, so sync
 latency can be measured from the device log.
 
 The device also sends the revision it is showing with each request
-and checks in again straight after applying a new one. The server
+and checks in again straight after first drawing a new one. A
+`Displayed revision N` log line marks that first draw, which can
+trail the `Applied` line by about a second. The server
 logs `Device showing: ... revision N, S s after save`, which gives
 the same measurement on the computer's clock without needing the
 device log. On the physical Edge 840 the log file under

@@ -57,9 +57,9 @@ The native console must report:
 14:02:07 Applied web design YOUR_DESIGN_ID revision 1, 3 s after save
 ```
 
-Sync messages start with the device's clock time. The trailing figure is the time between the server saving that revision and the device applying it; it compares the computer's clock with the device's, so treat it as accurate to about a second. The server prefixes its own `Design saved` and `Design fetched` lines with the computer's clock time.
+Sync messages start with the device's clock time. `Applied` marks the moment the response was accepted; a following `Displayed revision N` line marks the first time that revision was drawn, which can be up to about a second later because Garmin redraws data fields on its own schedule. The trailing figure is the time between the server saving that revision and the device applying it; it compares the computer's clock with the device's, so treat it as accurate to about a second. The server prefixes its own `Design saved` and `Design fetched` lines with the computer's clock time.
 
-The device also tells the server which revision it is showing, and checks in again straight after applying a new one. The designer Terminal then prints, for example:
+The device also tells the server which revision it is showing, and checks in again straight after first drawing a new one. The designer Terminal then prints, for example:
 
 ```text
 14:02:08 Device showing: YOUR_DESIGN_ID revision 4, 4 s after save

@@ -219,6 +219,7 @@ class DashMaxField extends WatchUi.DataField {
         if (_design != null) {
             _design.poll(_riding);
             drawDesign(dc, imperial, activity, missing, stopped, animate);
+            _design.displayed();
             return;
         }
         _zones.refresh();
