@@ -8,6 +8,7 @@ export const HEIGHT: number;
 export const MAX_ROWS: number;
 export const MAX_CELLS: number;
 export const STATS_MIN_HEIGHT: number;
+export const STATS_HALF_MIN_HEIGHT: number;
 export const GRAPH_MIN_HEIGHT: number;
 export const GRAPH_STATS_MIN_HEIGHT: number;
 export const METRICS: Record<string, Metric>;

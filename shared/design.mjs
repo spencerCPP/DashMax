@@ -9,9 +9,11 @@ export const MAX_ROWS = 6;
 export const MAX_CELLS = 2;
 
 // label: full-width cell. short: half-width cell. sample: web preview only.
-// stats: sample [average, maximum] for metrics that can show an avg/max column.
-// The column is drawn only in full-width cells at least STATS_MIN_HEIGHT tall.
+// stats: sample [average, maximum] for metrics that can show average and max.
+// A full-width cell at least STATS_MIN_HEIGHT tall shows them as a column.
 export const STATS_MIN_HEIGHT = 70;
+// In a half-width cell the pair goes on one small line under the value instead.
+export const STATS_HALF_MIN_HEIGHT = 80;
 // trend: the metric can use the graph layout (value above a zone-coloured
 // history graph) in full-width cells at least GRAPH_MIN_HEIGHT tall. The
 // graph layout also shows average and maximum, unless stats is false, in
@@ -83,7 +85,7 @@ export function normalizeRows(rows) {
       return {
         metric: cell.metric,
         ...(cell.zone === true && METRICS[cell.metric].zone ? { zone: true } : {}),
-        ...(cell.stats === true && METRICS[cell.metric].stats && single ? { stats: true } : {}),
+        ...(cell.stats === true && METRICS[cell.metric].stats ? { stats: true } : {}),
         // On a graph cell, false switches the default average and maximum off.
         ...(cell.stats === false && graph ? { stats: false } : {}),
         ...(graph ? { graph: true } : {}),

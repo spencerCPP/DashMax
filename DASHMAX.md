@@ -170,7 +170,9 @@ The web designer lets a user:
 4. Turn on zone colouring for power, heart-rate and grade cells,
    and an
    average-and-max column for power, heart rate, cadence or speed
-   in full-width rows at least 70 px tall.
+   in full-width rows at least 70 px tall. In a split row at least
+   80 px tall, average and max go on one small line under the
+   value instead.
    Power and heart rate can instead use a graph layout in
    full-width rows at least 75 px tall: the value on top and a
    history graph of the last 90 samples underneath, coloured by

@@ -906,10 +906,38 @@ class DashMaxField extends WatchUi.DataField {
         }
         var font = null;
         var spare = 0;
-        // Average and maximum stack at the right of cells with room for them:
-        // full-width and at least 70 px tall.
+        // Average and maximum stack at the right of full-width cells at least
+        // 70 px tall. Half-width cells at least 80 px tall have no room
+        // beside the value, so they get one small line underneath it.
         var room = inner;
-        if (stats != null && !half && !compact) {
+        if (stats != null && half && height >= 80) {
+            valueHeight -= 17;
+            var under = "AVG " + stats[0] + "  MAX " + stats[1];
+            var underWide = dc.getTextWidthInPixels(under, Graphics.FONT_XTINY);
+            if (underWide > x(inner)) {
+                under = "A " + stats[0] + "  M " + stats[1];
+            }
+            py = y(valueTop + valueHeight);
+            if (center) {
+                px = x(left + width / 2.0);
+                dc.drawText(
+                    px,
+                    py,
+                    Graphics.FONT_XTINY,
+                    under,
+                    Graphics.TEXT_JUSTIFY_CENTER
+                );
+            } else {
+                px = x(left + pad);
+                dc.drawText(
+                    px,
+                    py,
+                    Graphics.FONT_XTINY,
+                    under,
+                    Graphics.TEXT_JUSTIFY_LEFT
+                );
+            }
+        } else if (stats != null && !half && !compact) {
             room = inner - 84;
             var each = valueHeight / 2.0;
             px = x(left + width - pad);
