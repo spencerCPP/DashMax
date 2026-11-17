@@ -9,3 +9,5 @@ garmin/*.iq
 *.der
 
 .dashmax-designs/
+.DS_Store
+ garmin/.DS_Store
