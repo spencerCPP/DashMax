@@ -28,6 +28,19 @@ class GarminZones {
         }
     }
 
+    function describe(boundaries) {
+        if (boundaries == null) {
+            return "none";
+        }
+        var text = boundaries.size().toString() + "-";
+        for (var i = 0; i < boundaries.size(); i += 1) {
+            text +=
+                (i > 0 ? "/" : "") +
+                (boundaries[i] == null ? "x" : boundaries[i].toString());
+        }
+        return text;
+    }
+
     function refresh() {
         var now = (System.getTimer() / 1000).toNumber();
         if (
@@ -52,40 +65,62 @@ class GarminZones {
         } catch (error) {
             heartRate = null;
         }
-        try {
-            // The SDK exposes cycling power-zone limits directly. Never derive
-            // stand-in thresholds from generic FTP percentages.
-            var powerBounds =
-                UserProfile has :getPowerZones
-                    ? UserProfile.getPowerZones(Activity.SPORT_CYCLING)
-                    : null;
-            power =
-                ZoneColors.valid(powerBounds) && powerBounds.size() == 8
-                    ? powerBounds
-                    : null;
-            if (!(UserProfile has :getPowerZones)) {
-                powerRaw = "unsupported";
-            } else if (powerBounds == null) {
-                powerRaw = "none";
-            } else {
-                powerRaw = powerBounds.size().toString() + "-";
-                for (var z = 0; z < powerBounds.size(); z += 1) {
-                    powerRaw +=
-                        (z > 0 ? "/" : "") +
-                        (powerBounds[z] == null
-                            ? "x"
-                            : powerBounds[z].toString());
+        // Never derive stand-in thresholds from generic FTP percentages.
+        // Garmin's call has been reported to return nothing on some Edges, so
+        // ask under each sport the zones could be filed under and record
+        // every answer for diagnosis.
+        power = null;
+        powerRaw = "";
+        if (!(UserProfile has :getPowerZones)) {
+            powerRaw = "unsupported";
+        } else {
+            var sports = [Activity.SPORT_CYCLING, Activity.SPORT_GENERIC];
+            try {
+                var profile =
+                    Activity has :getProfileInfo
+                        ? Activity.getProfileInfo()
+                        : null;
+                // Which sport the active Garmin profile reports.
+                powerRaw +=
+                    "profile:" +
+                    (profile == null || profile.sport == null
+                        ? "none"
+                        : profile.sport.toString()) +
+                    "|";
+                if (
+                    profile != null &&
+                    profile.sport != null &&
+                    profile.sport != Activity.SPORT_CYCLING &&
+                    profile.sport != Activity.SPORT_GENERIC
+                ) {
+                    sports.add(profile.sport);
+                }
+            } catch (error) {
+                powerRaw += "profile-error|";
+            }
+            for (var p = 0; p < sports.size(); p += 1) {
+                var found = null;
+                var answer = "error";
+                try {
+                    found = UserProfile.getPowerZones(sports[p]);
+                    answer = describe(found);
+                } catch (error) {
+                    found = null;
+                }
+                powerRaw +=
+                    (p > 0 ? "|" : "") +
+                    "sport" +
+                    sports[p].toString() +
+                    ":" +
+                    answer;
+                if (
+                    power == null &&
+                    ZoneColors.valid(found) &&
+                    found.size() == 8
+                ) {
+                    power = found;
                 }
             }
-            if (!_reported && powerBounds != null && power == null) {
-                System.println(
-                    "Power zone format needs verification; leaving power background neutral."
-                );
-                logLimits("power (raw)", powerBounds);
-            }
-        } catch (error) {
-            power = null;
-            powerRaw = "error";
         }
         if (!_reported) {
             logLimits("HR", heartRate);

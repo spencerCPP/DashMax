@@ -48,7 +48,7 @@ export function createDesignServer({ dataDir = path.join(root, '.dashmax-designs
         const have = /^\d{1,10}$/.test(url.searchParams.get('have') || '') ? Number(url.searchParams.get('have')) : null;
         logger(`${clock()} Design fetched: ${design.id} revision ${design.revision}${have === null ? '' : ` (device has ${have})`}`);
         const pz = url.searchParams.get('pz') || '';
-        if (/^[\w./-]{1,160}$/.test(pz) && pz !== zones[design.id]) {
+        if (/^[\w./|:-]{1,300}$/.test(pz) && pz !== zones[design.id]) {
           zones[design.id] = pz;
           logger(`${clock()} Device power zones: ${pz}`);
         }
