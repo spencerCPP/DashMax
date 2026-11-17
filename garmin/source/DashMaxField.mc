@@ -37,6 +37,17 @@ class DashMaxField extends WatchUi.DataField {
     var _boxTop = 0;
     var _boxWidth = 0;
     var _boxHeight = 0;
+    // The cell being drawn, and what its drawing steps share.
+    var _cell = null;
+    var _data = null;
+    var _stats = null;
+    var _half = false;
+    var _center = false;
+    var _cellInk = 0;
+    var _pad = 12;
+    var _valueTop = 0;
+    var _valueHeight = 0;
+    var _valueRoom = 0;
 
     function initialize() {
         DataField.initialize();
@@ -220,12 +231,29 @@ class DashMaxField extends WatchUi.DataField {
             return;
         }
 
+        // The draw mode travels in fields, and each screen is drawn by its
+        // own function, so this one holds very little stack.
+        _drawImperial = imperial;
+        _drawActivity = activity;
+        _drawMissing = missing;
+        _drawStopped = stopped;
+        _drawAnimate = animate;
         if (_design != null) {
             _design.poll(_riding);
-            drawDesign(dc, imperial, activity, missing, stopped, animate);
+            drawDesign(dc);
             _design.displayed();
             return;
         }
+        drawDashboard(dc);
+    }
+
+    // The original fixed dashboard.
+    function drawDashboard(dc) {
+        var imperial = _drawImperial;
+        var activity = _drawActivity;
+        var missing = _drawMissing;
+        var stopped = _drawStopped;
+        var animate = _drawAnimate;
         _zones.refresh();
         var hostInk = _ink;
         var hostMuted = _muted;
@@ -432,8 +460,9 @@ class DashMaxField extends WatchUi.DataField {
 
     // Largest native font that fits BOTH the width and height given.
     function fit(dc, value, width, height) {
-        var widest = x(width);
-        var tallest = y(height);
+        // Scaled in place rather than through x() and y(), to stay shallow.
+        var widest = ((width * _width) / 246.0).toNumber();
+        var tallest = ((height * _height) / 322.0).toNumber();
         var numeric = true;
         for (var c = 0; c < value.length(); c += 1) {
             var character = value.substring(c, c + 1);
@@ -457,7 +486,7 @@ class DashMaxField extends WatchUi.DataField {
     }
 
     // [label, short label, unit, value, zone reading, zone limits] for a metric.
-    // The draw mode comes from fields set by drawDesign, to keep calls shallow.
+    // The draw mode comes from fields set by onUpdate, to keep calls shallow.
     function cellData(id) {
         var speedUnit = _drawImperial ? "mph" : "km/h";
         if (id.equals("power")) {
@@ -670,9 +699,10 @@ class DashMaxField extends WatchUi.DataField {
         return null;
     }
 
-    // Filled history graph in the current box, coloured by zone under an
-    // outline, scaled to the range of the samples shown.
-    function drawZoneGraph(dc, history, bounds, fromZero) {
+    // [lowest value drawn, value span] for a history graph, or null when the
+    // history is empty. Power is drawn from zero; heart rate from just under
+    // its lowest sample.
+    function graphRange(history, fromZero) {
         var low = null;
         var high = null;
         for (var i = 0; i < 90; i += 1) {
@@ -688,25 +718,38 @@ class DashMaxField extends WatchUi.DataField {
             }
         }
         if (high == null) {
-            return;
+            return null;
         }
-        // Power is drawn from zero; heart rate from just under its lowest.
         low = fromZero ? 0 : low - 10;
         high = high + 5;
         if (high - low < 20) {
             high = low + 20;
         }
-        var span = (high - low) * 1.0;
-        // Look each zone's colour up once, not once per bar.
-        var colors = null;
-        if (bounds != null) {
-            var count = bounds.size() - 1;
-            colors = new [count];
-            for (var z = 0; z < count; z += 1) {
-                var entry = ZoneColors.palette(z, count);
-                colors[z] = entry == null ? 0xa6a6a6 : entry[0];
-            }
+        return [low, (high - low) * 1.0];
+    }
+
+    // One colour per zone, looked up once per graph, or null without zones.
+    function zoneColorTable(bounds) {
+        if (bounds == null) {
+            return null;
         }
+        var count = bounds.size() - 1;
+        var colors = new [count];
+        for (var z = 0; z < count; z += 1) {
+            var entry = ZoneColors.palette(z, count);
+            colors[z] = entry == null ? 0xa6a6a6 : entry[0];
+        }
+        return colors;
+    }
+
+    // Filled history graph in the current box, coloured by zone under an
+    // outline, scaled to the range of the samples shown.
+    function drawZoneGraph(dc, history, bounds, fromZero) {
+        var range = graphRange(history, fromZero);
+        if (range == null) {
+            return;
+        }
+        var colors = zoneColorTable(bounds);
         var bottom = y(_boxTop + _boxHeight);
         var full = bottom - y(_boxTop);
         var first = x(_boxLeft);
@@ -719,8 +762,7 @@ class DashMaxField extends WatchUi.DataField {
         var scale = 89.0 / (columns - 1);
         var lastTop = null;
         for (var p = 0; p < columns; p += 1) {
-            var position = p * scale;
-            var index = position.toNumber();
+            var index = (p * scale).toNumber();
             var value = history[(_head + index) % 90];
             if (value == null) {
                 lastTop = null;
@@ -729,7 +771,7 @@ class DashMaxField extends WatchUi.DataField {
             if (index < 89) {
                 var next = history[(_head + index + 1) % 90];
                 if (next != null) {
-                    value = value + (next - value) * (position - index);
+                    value = value + (next - value) * (p * scale - index);
                 }
             }
             var color = 0xa6a6a6;
@@ -739,323 +781,337 @@ class DashMaxField extends WatchUi.DataField {
                     color = colors[zone];
                 }
             }
-            var tall = (((value - low) / span) * full).toNumber();
+            var tall = (((value - range[0]) / range[1]) * full).toNumber();
             if (tall < 1) {
                 tall = 1;
             } else if (tall > full) {
                 tall = full;
             }
-            var column = first + p;
-            var peak = bottom - tall;
             dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(column, peak, 1, tall);
+            dc.fillRectangle(first + p, bottom - tall, 1, tall);
             dc.setColor(_ink, Graphics.COLOR_TRANSPARENT);
             if (lastTop == null) {
-                dc.drawPoint(column, peak);
+                dc.drawPoint(first + p, bottom - tall);
             } else {
-                dc.drawLine(column - 1, lastTop, column, peak);
+                dc.drawLine(first + p - 1, lastTop, first + p, bottom - tall);
             }
-            lastTop = peak;
+            lastTop = bottom - tall;
         }
     }
 
     // A full-width power or heart-rate cell in the current box: the value on
-    // top, with average and maximum beside it when `stats` is given, and a
+    // top, with average and maximum beside it when _stats is set, and a
     // zone-coloured history graph underneath.
-    function drawGraphCell(dc, center, data, stats, history) {
-        var left = _boxLeft;
-        var width = _boxWidth;
+    function drawGraphCell(dc, history) {
         var valueTop = _boxTop + 22;
         var band = _boxHeight - 26;
         var valueHeight = band * 0.45;
         dc.setColor(_ink, Graphics.COLOR_TRANSPARENT);
-        var px = x(left + 12);
+        var px = x(_boxLeft + 12);
         var py = y(_boxTop + 6);
         dc.drawText(
             px,
             py,
             Graphics.FONT_XTINY,
-            data[0],
+            _data[0],
             Graphics.TEXT_JUSTIFY_LEFT
         );
-        px = x(left + width - 12);
+        px = x(_boxLeft + _boxWidth - 12);
         dc.drawText(
             px,
             py,
             Graphics.FONT_XTINY,
-            data[2],
+            _data[2],
             Graphics.TEXT_JUSTIFY_RIGHT
         );
         var font = null;
-        var room = width - 24;
-        if (stats != null) {
+        var room = _boxWidth - 24;
+        if (_stats != null) {
             // Average and maximum, stacked at the right.
-            room = width - 108;
-            var each = valueHeight / 2.0;
-            var line = "AVG " + stats[0];
-            font = fit(dc, line, 78, each);
+            room = _boxWidth - 108;
+            var line = "AVG " + _stats[0];
+            font = fit(dc, line, 78, valueHeight / 2.0);
             py = y(valueTop);
             dc.drawText(px, py, font, line, Graphics.TEXT_JUSTIFY_RIGHT);
-            line = "MAX " + stats[1];
-            font = fit(dc, line, 78, each);
-            py = y(valueTop + each);
+            line = "MAX " + _stats[1];
+            font = fit(dc, line, 78, valueHeight / 2.0);
+            py = y(valueTop + valueHeight / 2.0);
             dc.drawText(px, py, font, line, Graphics.TEXT_JUSTIFY_RIGHT);
         }
         // The live value, vertically centred in its band.
-        font = fit(dc, data[3], room, valueHeight);
-        var spare = y(valueHeight) - dc.getFontHeight(font);
-        py = y(valueTop);
-        if (spare > 0) {
-            py += spare / 2;
-        }
-        if (center) {
-            px = x(left + 12 + room / 2.0);
-            dc.drawText(px, py, font, data[3], Graphics.TEXT_JUSTIFY_CENTER);
+        font = fit(dc, _data[3], room, valueHeight);
+        py = y(valueHeight) - dc.getFontHeight(font);
+        py = y(valueTop) + (py > 0 ? py / 2 : 0);
+        if (_center) {
+            px = x(_boxLeft + 12 + room / 2.0);
+            dc.drawText(px, py, font, _data[3], Graphics.TEXT_JUSTIFY_CENTER);
         } else {
-            px = x(left + 12);
-            dc.drawText(px, py, font, data[3], Graphics.TEXT_JUSTIFY_LEFT);
+            px = x(_boxLeft + 12);
+            dc.drawText(px, py, font, _data[3], Graphics.TEXT_JUSTIFY_LEFT);
         }
         // Hand the graph its own box.
-        var fromZero = data[1].equals("POWER");
-        _boxLeft = left + 12;
-        _boxWidth = width - 24;
+        _boxLeft = _boxLeft + 12;
+        _boxWidth = _boxWidth - 24;
         _boxTop = valueTop + valueHeight + 3;
         _boxHeight = band - valueHeight - 3;
-        drawZoneGraph(dc, history, data[5], fromZero);
+        drawZoneGraph(dc, history, _data[5], _data[1].equals("POWER"));
     }
 
-    // One cell of a designed row, in the current box (246 x 322 units).
-    function drawCell(dc, cell, half, center, data, stats) {
-        var left = _boxLeft;
-        var top = _boxTop;
-        var width = _boxWidth;
-        var height = _boxHeight;
-        var ink = _ink;
-        var px = 0;
-        var py = 0;
-        if (cell["zone"] == true) {
-            // Grade has fixed bands; power and heart rate use rider zones.
-            var selected = null;
-            var metric = cell["metric"];
-            if (metric.equals("grade")) {
-                selected = ZoneColors.grade(data[4]);
-            } else if (data[5] != null) {
-                var zone = ZoneColors.index(data[4], data[5]);
-                var count = data[5].size() - 1;
-                selected = ZoneColors.palette(zone, count);
-            }
-            if (selected != null) {
-                px = x(left);
-                py = y(top);
-                var fillWide = x(left + width) - px;
-                var fillTall = y(top + height) - py;
-                dc.setColor(selected[0], Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(px, py, fillWide, fillTall);
-                ink = selected[1] ? Graphics.COLOR_WHITE : Graphics.COLOR_BLACK;
-            }
+    // Fills the current cell with its zone colour, if it has one, and sets
+    // the ink the rest of the cell is drawn in. Grade has fixed bands; power
+    // and heart rate use rider zones.
+    function drawZoneFill(dc) {
+        var selected = null;
+        if (_cell["metric"].equals("grade")) {
+            selected = ZoneColors.grade(_data[4]);
+        } else if (_data[5] != null) {
+            var zone = ZoneColors.index(_data[4], _data[5]);
+            selected = ZoneColors.palette(zone, _data[5].size() - 1);
         }
-        // Short rows tuck the label closer to the top edge.
-        var compact = height < 70;
-        var pad = half ? 8 : 12;
-        var inner = width - 2 * pad;
-        var labelTop = top + (compact ? 2 : 8);
-        var valueTop = labelTop + (compact ? 15 : 18);
-        var valueHeight = top + height - valueTop - (compact ? 2 : 8);
-        var title = half ? data[1] : data[0];
-        var unit = data[2];
-        dc.setColor(ink, Graphics.COLOR_TRANSPARENT);
-        // The unit shares the label line, and is dropped if it would collide.
-        var unitFits = false;
+        if (selected == null) {
+            return;
+        }
+        var px = x(_boxLeft);
+        var py = y(_boxTop);
+        dc.setColor(selected[0], Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(
+            px,
+            py,
+            x(_boxLeft + _boxWidth) - px,
+            y(_boxTop + _boxHeight) - py
+        );
+        _cellInk = selected[1] ? Graphics.COLOR_WHITE : Graphics.COLOR_BLACK;
+    }
+
+    // The label line of the current cell. The unit shares the line, and is
+    // dropped if it would collide with the label.
+    function drawCellLabel(dc, labelTop) {
+        var title = _half ? _data[1] : _data[0];
+        var unit = _data[2];
+        var fits = false;
         if (unit.length() > 0) {
-            var titleWide = dc.getTextWidthInPixels(title, Graphics.FONT_XTINY);
-            var unitWide = dc.getTextWidthInPixels(unit, Graphics.FONT_XTINY);
-            unitFits = titleWide + unitWide + x(6) <= x(inner);
+            var wide = dc.getTextWidthInPixels(title, Graphics.FONT_XTINY);
+            wide += dc.getTextWidthInPixels(unit, Graphics.FONT_XTINY);
+            fits = wide + x(6) <= x(_boxWidth - 2 * _pad);
         }
-        py = y(labelTop);
-        if (center) {
-            if (unitFits) {
+        var py = y(labelTop);
+        if (_center) {
+            if (fits) {
                 title = title + " " + unit;
             }
-            px = x(left + width / 2.0);
             dc.drawText(
-                px,
+                x(_boxLeft + _boxWidth / 2.0),
                 py,
                 Graphics.FONT_XTINY,
                 title,
                 Graphics.TEXT_JUSTIFY_CENTER
             );
-        } else {
-            px = x(left + pad);
+            return;
+        }
+        dc.drawText(
+            x(_boxLeft + _pad),
+            py,
+            Graphics.FONT_XTINY,
+            title,
+            Graphics.TEXT_JUSTIFY_LEFT
+        );
+        if (fits) {
             dc.drawText(
-                px,
+                x(_boxLeft + _boxWidth - _pad),
                 py,
                 Graphics.FONT_XTINY,
-                title,
-                Graphics.TEXT_JUSTIFY_LEFT
+                unit,
+                Graphics.TEXT_JUSTIFY_RIGHT
             );
-            if (unitFits) {
-                px = x(left + width - pad);
-                dc.drawText(
-                    px,
-                    py,
-                    Graphics.FONT_XTINY,
-                    unit,
-                    Graphics.TEXT_JUSTIFY_RIGHT
-                );
-            }
         }
-        var font = null;
-        var spare = 0;
-        // Average and maximum stack at the right of full-width cells at least
-        // 70 px tall. Half-width cells at least 80 px tall are handled first.
-        var room = inner;
-        if (stats != null && half && height >= 80) {
-            // Preferred: two small lines at the right, under the unit, with
-            // the value beside them. Used whenever that leaves the value at
-            // least as large as the alternative, one line under the value.
-            var average = "AVG " + stats[0];
-            var most = "MAX " + stats[1];
-            var stackWide = dc.getTextWidthInPixels(average, Graphics.FONT_XTINY);
-            var mostWide = dc.getTextWidthInPixels(most, Graphics.FONT_XTINY);
-            if (mostWide > stackWide) {
-                stackWide = mostWide;
-            }
-            var lineTall = dc.getFontHeight(Graphics.FONT_XTINY);
-            var band = y(valueHeight);
-            // fit() takes 246-unit widths; the stack was measured in pixels.
-            var beside = inner - 6 - (stackWide * 246.0) / _width;
-            var besideFont = fit(dc, data[3], beside, valueHeight);
-            var underFont = fit(dc, data[3], inner, valueHeight - 17);
-            var besideTall = dc.getFontHeight(besideFont);
-            if (2 * lineTall <= band && besideTall >= dc.getFontHeight(underFont)) {
-                px = x(left + width - pad);
-                py = y(valueTop) + (band - 2 * lineTall) / 2;
+    }
+
+    // Average and maximum as a two-line column at the right of a full-width
+    // cell. Narrows the room left for the value.
+    function drawFullStats(dc) {
+        _valueRoom = _valueRoom - 84;
+        var px = x(_boxLeft + _boxWidth - _pad);
+        for (var s = 0; s < 2; s += 1) {
+            var line = (s == 0 ? "AVG " : "MAX ") + _stats[s];
+            var font = fit(dc, line, 78, _valueHeight / 2.0);
+            var py = y(_valueHeight / 2.0) - dc.getFontHeight(font);
+            py = y(_valueTop + (s * _valueHeight) / 2.0) + (py > 0 ? py / 2 : 0);
+            dc.drawText(px, py, font, line, Graphics.TEXT_JUSTIFY_RIGHT);
+        }
+    }
+
+    // Average and maximum in a half-width cell. Preferred: two small lines at
+    // the right, under the unit, with the value beside them; this draws the
+    // value too and returns true. That layout is used whenever it leaves the
+    // value at least as large as the alternative, one small line under the
+    // value, which this draws before returning false.
+    function drawHalfStats(dc) {
+        var average = "AVG " + _stats[0];
+        var most = "MAX " + _stats[1];
+        var stackWide = dc.getTextWidthInPixels(average, Graphics.FONT_XTINY);
+        var lineTall = dc.getTextWidthInPixels(most, Graphics.FONT_XTINY);
+        if (lineTall > stackWide) {
+            stackWide = lineTall;
+        }
+        lineTall = dc.getFontHeight(Graphics.FONT_XTINY);
+        // fit() takes 246-unit widths; the stack was measured in pixels.
+        var beside = _valueRoom - 6 - (stackWide * 246.0) / _width;
+        var font = fit(dc, _data[3], beside, _valueHeight);
+        var tall = dc.getFontHeight(font);
+        var px = x(_boxLeft + _boxWidth - _pad);
+        var py = y(_valueHeight);
+        if (2 * lineTall <= py) {
+            var under = fit(dc, _data[3], _valueRoom, _valueHeight - 17);
+            if (tall >= dc.getFontHeight(under)) {
+                under = y(_valueTop) + (py - 2 * lineTall) / 2;
                 dc.drawText(
                     px,
-                    py,
+                    under,
                     Graphics.FONT_XTINY,
                     average,
                     Graphics.TEXT_JUSTIFY_RIGHT
                 );
-                py += lineTall;
                 dc.drawText(
                     px,
-                    py,
+                    under + lineTall,
                     Graphics.FONT_XTINY,
                     most,
                     Graphics.TEXT_JUSTIFY_RIGHT
                 );
-                py = y(valueTop);
-                if (band > besideTall) {
-                    py += (band - besideTall) / 2;
-                }
-                if (center) {
-                    px = x(left + pad + beside / 2.0);
+                py = y(_valueTop) + (py > tall ? (py - tall) / 2 : 0);
+                if (_center) {
+                    px = x(_boxLeft + _pad + beside / 2.0);
                     dc.drawText(
                         px,
                         py,
-                        besideFont,
-                        data[3],
+                        font,
+                        _data[3],
                         Graphics.TEXT_JUSTIFY_CENTER
                     );
                 } else {
-                    px = x(left + pad);
+                    px = x(_boxLeft + _pad);
                     dc.drawText(
                         px,
                         py,
-                        besideFont,
-                        data[3],
+                        font,
+                        _data[3],
                         Graphics.TEXT_JUSTIFY_LEFT
                     );
                 }
-                return;
-            }
-            valueHeight -= 17;
-            var under = "AVG " + stats[0] + "  MAX " + stats[1];
-            var underWide = dc.getTextWidthInPixels(under, Graphics.FONT_XTINY);
-            if (underWide > x(inner)) {
-                under = "A " + stats[0] + "  M " + stats[1];
-            }
-            py = y(valueTop + valueHeight);
-            if (center) {
-                px = x(left + width / 2.0);
-                dc.drawText(
-                    px,
-                    py,
-                    Graphics.FONT_XTINY,
-                    under,
-                    Graphics.TEXT_JUSTIFY_CENTER
-                );
-            } else {
-                px = x(left + pad);
-                dc.drawText(
-                    px,
-                    py,
-                    Graphics.FONT_XTINY,
-                    under,
-                    Graphics.TEXT_JUSTIFY_LEFT
-                );
-            }
-        } else if (stats != null && !half && !compact) {
-            room = inner - 84;
-            var each = valueHeight / 2.0;
-            px = x(left + width - pad);
-            for (var s = 0; s < 2; s += 1) {
-                var line = (s == 0 ? "AVG " : "MAX ") + stats[s];
-                font = fit(dc, line, 78, each);
-                spare = y(each) - dc.getFontHeight(font);
-                py = y(valueTop + s * each);
-                if (spare > 0) {
-                    py += spare / 2;
-                }
-                dc.drawText(px, py, font, line, Graphics.TEXT_JUSTIFY_RIGHT);
+                return true;
             }
         }
-        font = fit(dc, data[3], room, valueHeight);
-        spare = y(valueHeight) - dc.getFontHeight(font);
-        py = y(valueTop);
-        if (spare > 0) {
-            py += spare / 2;
+        // One small line under the value, shortened if it is too wide.
+        _valueHeight = _valueHeight - 17;
+        average = average + "  " + most;
+        if (
+            dc.getTextWidthInPixels(average, Graphics.FONT_XTINY) >
+            x(_valueRoom)
+        ) {
+            average = "A " + _stats[0] + "  M " + _stats[1];
         }
-        if (center) {
-            px = x(left + pad + room / 2.0);
-            dc.drawText(px, py, font, data[3], Graphics.TEXT_JUSTIFY_CENTER);
+        py = y(_valueTop + _valueHeight);
+        if (_center) {
+            px = x(_boxLeft + _boxWidth / 2.0);
+            dc.drawText(
+                px,
+                py,
+                Graphics.FONT_XTINY,
+                average,
+                Graphics.TEXT_JUSTIFY_CENTER
+            );
         } else {
-            px = x(left + pad);
-            dc.drawText(px, py, font, data[3], Graphics.TEXT_JUSTIFY_LEFT);
+            px = x(_boxLeft + _pad);
+            dc.drawText(
+                px,
+                py,
+                Graphics.FONT_XTINY,
+                average,
+                Graphics.TEXT_JUSTIFY_LEFT
+            );
+        }
+        return false;
+    }
+
+    // The main value of the current cell, vertically centred in its band.
+    function drawCellValue(dc) {
+        var font = fit(dc, _data[3], _valueRoom, _valueHeight);
+        var py = y(_valueHeight) - dc.getFontHeight(font);
+        py = y(_valueTop) + (py > 0 ? py / 2 : 0);
+        if (_center) {
+            dc.drawText(
+                x(_boxLeft + _pad + _valueRoom / 2.0),
+                py,
+                font,
+                _data[3],
+                Graphics.TEXT_JUSTIFY_CENTER
+            );
+        } else {
+            dc.drawText(
+                x(_boxLeft + _pad),
+                py,
+                font,
+                _data[3],
+                Graphics.TEXT_JUSTIFY_LEFT
+            );
         }
     }
 
-    function drawDesign(dc, imperial, activity, missing, stopped, animate) {
+    // One cell of a designed row, in the current box (246 x 322 units). The
+    // work is split into small steps so that no single one holds much stack.
+    function drawCell(dc) {
+        _cellInk = _ink;
+        if (_cell["zone"] == true) {
+            drawZoneFill(dc);
+        }
+        // Short rows tuck the label closer to the top edge.
+        var compact = _boxHeight < 70;
+        _pad = _half ? 8 : 12;
+        _valueRoom = _boxWidth - 2 * _pad;
+        _valueTop = _boxTop + (compact ? 17 : 26);
+        _valueHeight = _boxHeight - (compact ? 19 : 34);
+        dc.setColor(_cellInk, Graphics.COLOR_TRANSPARENT);
+        drawCellLabel(dc, _boxTop + (compact ? 2 : 8));
+        if (_stats != null) {
+            if (_half) {
+                // Needs a row at least 80 px tall.
+                if (_boxHeight >= 80 && drawHalfStats(dc)) {
+                    return;
+                }
+            } else if (!compact) {
+                // Needs a row at least 70 px tall.
+                drawFullStats(dc);
+            }
+        }
+        drawCellValue(dc);
+    }
+
+    function drawDesign(dc) {
         var config = _design.config;
         if (config == null) {
             text(dc, "Waiting for design", 12, 125, 222, 35, _ink, false);
             label(dc, "Check the sync console", 12, 170, 222, false);
             return;
         }
-        _drawImperial = imperial;
-        _drawActivity = activity;
-        _drawMissing = missing;
-        _drawStopped = stopped;
-        _drawAnimate = animate;
         _zones.refresh();
         _design.note = _zones.powerRaw;
         _ink = config["foreground"];
         _muted = _ink;
         dc.setColor(_ink, config["background"]);
         dc.clear();
+        _center = DesignConfig.centered(config);
         var rows = config["rows"];
-        var center = DesignConfig.centered(config);
         for (var i = 0; i < rows.size(); i += 1) {
             var top = DesignConfig.rowTop(rows, i);
             var height = DesignConfig.rowTop(rows, i + 1) - top;
             var cells = rows[i]["cells"];
             var count = cells.size();
+            _half = count > 1;
             for (var c = 0; c < count; c += 1) {
-                var cell = cells[c];
-                var id = cell["metric"];
-                var data = cellData(id);
-                var stats = null;
+                _cell = cells[c];
+                var id = _cell["metric"];
+                _data = cellData(id);
+                _stats = null;
                 _boxLeft = DesignConfig.cellLeft(count, c);
                 _boxWidth = DesignConfig.cellLeft(count, c + 1) - _boxLeft;
                 _boxTop = top;
@@ -1063,35 +1119,33 @@ class DashMaxField extends WatchUi.DataField {
                 // The graph layout needs a full-width power or heart-rate
                 // cell at least 75 px tall, and 110 px to also fit average
                 // and maximum, which show unless switched off.
-                var power = id.equals("power");
                 if (
-                    cell["graph"] == true &&
-                    count == 1 &&
+                    _cell["graph"] == true &&
+                    !_half &&
                     height >= 75 &&
-                    (power || id.equals("heartRate"))
+                    (id.equals("power") || id.equals("heartRate"))
                 ) {
-                    if (cell["stats"] != false && height >= 110) {
-                        stats = cellStats(id);
+                    if (_cell["stats"] != false && height >= 110) {
+                        _stats = cellStats(id);
                     }
-                    var history = power ? _history : _heartHistory;
-                    drawGraphCell(dc, center, data, stats, history);
+                    drawGraphCell(
+                        dc,
+                        id.equals("power") ? _history : _heartHistory
+                    );
                 } else {
-                    if (cell["stats"] == true) {
-                        stats = cellStats(id);
+                    if (_cell["stats"] == true) {
+                        _stats = cellStats(id);
                     }
-                    var half = count > 1;
-                    drawCell(dc, cell, half, center, data, stats);
+                    drawCell(dc);
                 }
             }
             // Dividers go on last so zone fills do not cover them.
-            var edge = y(top);
             dc.setColor(_ink, Graphics.COLOR_TRANSPARENT);
-            if (count > 1) {
-                var middle = x(123);
-                dc.drawLine(middle, edge, middle, y(top + height));
+            if (_half) {
+                dc.drawLine(x(123), y(top), x(123), y(top + height));
             }
             if (i > 0) {
-                dc.drawLine(0, edge, _width, edge);
+                dc.drawLine(0, y(top), _width, y(top));
             }
         }
     }

@@ -486,6 +486,13 @@ Issues encountered and corrected included:
   cells directly from the row loop, and works values out before
   the calls that use them. Crash details for a sideloaded build
   are written to `GARMIN/APPS/LOGS/CIQ_LOG.YML` on the device.
+- A second stack overflow, on an ordinary cell, after the cell
+  drawing function gained more local variables. Stack use grows
+  with the number of variables each running function declares, not
+  only with call depth. Cell drawing is now split into small steps
+  that share state through fields, and the original dashboard has
+  its own function so the top-level draw function stays small.
+  Keep functions on the drawing path short when adding features.
 - Native tests calling `Test.assertEqual` with a null value, which
   raises a type error; null checks now use `Test.assert(x == null)`.
 - Native tests comparing a Float with a Number literal, which are
