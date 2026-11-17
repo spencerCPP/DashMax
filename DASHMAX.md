@@ -167,7 +167,8 @@ The web designer lets a user:
    rows, Big two, or Data dense.
 2. Stack one to six rows, each small, medium or large.
 3. Put one or two metrics in each row.
-4. Turn on zone colouring for power and heart-rate cells, and an
+4. Turn on zone colouring for power, heart-rate and grade cells,
+   and an
    average-and-max column for power, heart rate, cadence or speed
    in full-width rows at least 70 px tall.
    Power and heart rate can instead use a graph layout in
@@ -210,6 +211,13 @@ device's elevation unit setting, which is separate from distance.
 
 Zone-coloured cells use the rider's Garmin zones, as on the
 original dashboard. The web preview shows example colours.
+
+Garmin has no gradient zones in the rider profile or the Connect
+IQ API. The grade cell's zone colour uses the fixed bands that
+Garmin's ClimbPro page draws: up to 3% green, 6% yellow, 9%
+orange, 12% red, and steeper dark red. Flat and downhill stay
+uncoloured. The bands come from the "Understanding ClimbPro on the
+Edge" guide on Garmin's forum, not from the owner's manual.
 
 ### Power zones on a physical Edge
 

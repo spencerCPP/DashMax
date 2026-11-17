@@ -30,7 +30,7 @@ test('row and cell rules', () => {
 test('zone is kept only on metrics that have zones', () => {
   const rows = normalizeRows([{ size: 2, extra: 1, cells: [{ metric: 'power', zone: true }, { metric: 'speed', zone: true, other: 2 }] }]);
   assert.deepEqual(rows, [{ size: 2, cells: [{ metric: 'power', zone: true }, { metric: 'speed' }] }]);
-  assert.ok(METRICS.heartRate.zone && !METRICS.grade.zone);
+  assert.ok(METRICS.heartRate.zone && METRICS.grade.zone && !METRICS.speed.zone);
 });
 
 test('layout fills the screen exactly with integer boxes', () => {
@@ -79,12 +79,12 @@ test('avg/max is kept only on full-width cells of metrics that have it', () => {
   const rows = normalizeRows([
     { size: 3, cells: [{ metric: 'power', zone: true, stats: true }] },
     { size: 2, cells: [{ metric: 'heartRate', stats: true }, { metric: 'cadence', stats: true }] },
-    { size: 2, cells: [{ metric: 'grade', stats: true }] },
+    { size: 2, cells: [{ metric: 'ascent', stats: true }] },
   ]);
   assert.deepEqual(rows, [
     { size: 3, cells: [{ metric: 'power', zone: true, stats: true }] },
     { size: 2, cells: [{ metric: 'heartRate' }, { metric: 'cadence' }] },
-    { size: 2, cells: [{ metric: 'grade' }] },
+    { size: 2, cells: [{ metric: 'ascent' }] },
   ]);
   assert.ok(designProblem([{ size: 1, cells: [{ metric: 'power', stats: 'yes' }] }]));
 });

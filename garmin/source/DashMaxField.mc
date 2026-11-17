@@ -550,7 +550,7 @@ class DashMaxField extends WatchUi.DataField {
         }
         if (id.equals("grade")) {
             var slope = activity ? _ride.grade : stopped ? null : 3.2;
-            return ["GRADE", "GRADE", "%", DashMath.grade(slope), null, null];
+            return ["GRADE", "GRADE", "%", DashMath.grade(slope), slope, null];
         }
         if (id.equals("ascent")) {
             // Elevation has its own unit setting, separate from distance.
@@ -798,11 +798,17 @@ class DashMaxField extends WatchUi.DataField {
             }
         }
         var ink = _ink;
-        if (cell["zone"] == true && data[5] != null) {
-            var selected = ZoneColors.palette(
-                ZoneColors.index(data[4], data[5]),
-                data[5].size() - 1
-            );
+        if (cell["zone"] == true) {
+            // Grade has fixed bands; power and heart rate use rider zones.
+            var selected = null;
+            if (cell["metric"].equals("grade")) {
+                selected = ZoneColors.grade(data[4]);
+            } else if (data[5] != null) {
+                selected = ZoneColors.palette(
+                    ZoneColors.index(data[4], data[5]),
+                    data[5].size() - 1
+                );
+            }
             if (selected != null) {
                 dc.setColor(selected[0], Graphics.COLOR_TRANSPARENT);
                 dc.fillRectangle(

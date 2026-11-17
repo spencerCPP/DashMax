@@ -26,7 +26,7 @@ export const METRICS = {
   distance: { name: 'Distance', label: 'DISTANCE', short: 'DISTANCE', unit: 'km', sample: '42.7' },
   elapsed: { name: 'Elapsed time', label: 'ELAPSED', short: 'ELAPSED', unit: '', sample: '1:36:24' },
   clock: { name: 'Time of day', label: 'TIME OF DAY', short: 'TIME', unit: '', sample: '14:05' },
-  grade: { name: 'Current grade', label: 'GRADE', short: 'GRADE', unit: '%', sample: '3.2' },
+  grade: { name: 'Current grade', label: 'GRADE', short: 'GRADE', unit: '%', sample: '3.2', zone: true },
   ascent: { name: 'Elevation climbed', label: 'ASCENT', short: 'ASCENT', unit: 'm', sample: '486' },
   heading: { name: 'Direction', label: 'DIRECTION', short: 'DIRECTION', unit: '42 deg', sample: 'NE' },
   graph: { name: 'Power graph (needs a full row)', label: 'POWER 90s', short: 'POWER 90s', unit: '', sample: '', fullRow: true },
