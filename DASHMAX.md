@@ -182,7 +182,8 @@ The web designer lets a user:
 
 Supported metrics:
 
-- Power and average power.
+- Power, average power, and power to weight (W/kg) using the
+  rider's weight from the Garmin profile.
 - Heart rate and average heart rate.
 - Cadence.
 - Speed and average speed.
@@ -192,7 +193,10 @@ Supported metrics:
 - Current grade.
 - Elevation climbed.
 - Direction (N, NE, E ...) with bearing.
-- Power graph (needs a full row).
+
+The stand-alone power graph row was removed once power and
+heart-rate cells gained their own graph layout. Stored designs
+lose such rows when the server loads them.
 
 Rules, enforced in the designer, the server and the device:
 

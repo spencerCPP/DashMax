@@ -6,7 +6,7 @@ type Design = { id: string; revision: number; rows: Row[]; background: number; f
 
 const SIZES = [[1, 'S'], [2, 'M'], [3, 'L']] as const;
 // Stand-ins for the preview; on the device the colour follows the rider's Garmin zones.
-const ZONE_PREVIEW: Record<string, string> = { power: '#faca48', heartRate: '#f27716', grade: '#efad43' };
+const ZONE_PREVIEW: Record<string, string> = { power: '#faca48', wkg: '#faca48', heartRate: '#f27716', grade: '#efad43' };
 // Made-up history for the preview graphs: [samples, zone tops, zone colours].
 const TREND: Record<string, [number[], number[], string[]]> = {
   power: [Array.from({ length: 90 }, (_, i) => Math.round(190 + 105 * Math.sin(i / 15) + 30 * Math.sin(i / 2.7))), [126, 167, 206, 236, 277, 342], ['#a6a6a6', '#3b97f3', '#40c35d', '#faca48', '#f27716', '#e02c2c', '#6f42f3']],
@@ -64,9 +64,7 @@ function Preview({ rows, background, foreground, center }: { rows: Row[]; backgr
       const size = Math.max(11, Math.min(valueHeight * 1.05, (cell.width - 2 * pad - (stats ? 84 : 0)) / (Math.max(metric.sample.length, 1) * .42)));
       return <div key={`${r}-${c}`} className="design-cell" style={{ left: cell.left, top: box.top, width: cell.width, height: box.height, padding: `${compact ? 2 : 8}px ${pad}px`, background: fill, color: fill ? '#000000' : undefined, borderTop: r ? '1px solid' : undefined, borderLeft: c ? '1px solid' : undefined, borderColor: foreground }}>
         <div className="design-label">{center ? <span>{half ? metric.short : metric.label} {metric.unit}</span> : <><span>{half ? metric.short : metric.label}</span><span>{metric.unit}</span></>}</div>
-        {cell.metric === 'graph'
-          ? <svg className="design-graph" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline points="0,9 8,7 16,10 24,6 32,8 40,5 48,9 56,7 64,11 72,6 80,8 88,5 100,7" fill="none" stroke="currentColor" strokeWidth="1" vectorEffect="non-scaling-stroke"/></svg>
-          : <div className="design-value"><strong style={{ fontSize: size, height: valueHeight, lineHeight: `${valueHeight}px` }}>{metric.sample}</strong>{stats && <div className="design-stats"><span>AVG {stats[0]}</span><span>MAX {stats[1]}</span></div>}</div>}
+        <div className="design-value"><strong style={{ fontSize: size, height: valueHeight, lineHeight: `${valueHeight}px` }}>{metric.sample}</strong>{stats && <div className="design-stats"><span>AVG {stats[0]}</span><span>MAX {stats[1]}</span></div>}</div>
       </div>;
     }))}
   </div>;
@@ -137,14 +135,14 @@ export function Designer() {
             <div className="row-cells">
               {row.cells.map((cell, c) => <div className="cell-editor" key={c}>
                 <select aria-label={`Row ${r + 1} metric ${c + 1}`} value={cell.metric} onChange={e => change(next => { next[r].cells[c] = { metric: e.target.value }; })}>
-                  {Object.entries(METRICS).map(([id, metric]) => <option key={id} value={id} disabled={metric.fullRow && row.cells.length > 1}>{metric.name}</option>)}
+                  {Object.entries(METRICS).map(([id, metric]) => <option key={id} value={id}>{metric.name}</option>)}
                 </select>
                 {METRICS[cell.metric].trend && row.cells.length === 1 && <label className="zone-toggle"><input type="checkbox" checked={cell.graph === true} disabled={boxes[r].height < GRAPH_MIN_HEIGHT} onChange={e => change(next => { next[r].cells[c].graph = e.target.checked; })}/> Graph{boxes[r].height < GRAPH_MIN_HEIGHT && ' (needs a taller row)'}</label>}
                 {METRICS[cell.metric].zone && <label className="zone-toggle"><input type="checkbox" checked={cell.zone === true} onChange={e => change(next => { next[r].cells[c].zone = e.target.checked; })}/> Zone colour</label>}
                 {METRICS[cell.metric].stats && row.cells.length === 1 && (() => { const needs = cell.graph ? GRAPH_STATS_MIN_HEIGHT : STATS_MIN_HEIGHT; const short = boxes[r].height < needs; return <label className="zone-toggle"><input type="checkbox" checked={!short && (cell.graph ? cell.stats !== false : cell.stats === true)} disabled={short} onChange={e => change(next => { next[r].cells[c].stats = e.target.checked; })}/> Average and max{short && ' (row too short)'}</label>; })()}
               </div>)}
               {row.cells.length === 1
-                ? <button className="split" disabled={METRICS[row.cells[0].metric].fullRow} onClick={() => change(next => { next[r].cells.push({ metric: Object.keys(METRICS).find(id => id !== row.cells[0].metric && !METRICS[id].fullRow)! }); })}>+ Split</button>
+                ? <button className="split" onClick={() => change(next => { next[r].cells.push({ metric: Object.keys(METRICS).find(id => id !== row.cells[0].metric)! }); })}>+ Split</button>
                 : <button className="split" onClick={() => change(next => { next[r].cells.pop(); })}>Merge</button>}
             </div>
           </div>)}

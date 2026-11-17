@@ -20,6 +20,7 @@ export const GRAPH_MIN_HEIGHT = 75;
 export const GRAPH_STATS_MIN_HEIGHT = 110;
 export const METRICS = {
   power: { name: 'Power', label: 'POWER', short: 'POWER', unit: 'W', sample: '312', zone: true, stats: ['284', '612'], trend: true },
+  wkg: { name: 'Power to weight (W/kg)', label: 'WATTS/KG', short: 'W/KG', unit: '', sample: '4.46', zone: true },
   avgPower: { name: 'Average power', label: 'AVG POWER', short: 'AVG PWR', unit: 'W', sample: '284' },
   heartRate: { name: 'Heart rate', label: 'HEART RATE', short: 'HR', unit: 'bpm', sample: '158', zone: true, stats: ['142', '171'], trend: true },
   avgHeartRate: { name: 'Average heart rate', label: 'AVG HEART RATE', short: 'AVG HR', unit: 'bpm', sample: '142' },
@@ -32,7 +33,6 @@ export const METRICS = {
   grade: { name: 'Current grade', label: 'GRADE', short: 'GRADE', unit: '%', sample: '3.2', zone: true },
   ascent: { name: 'Elevation climbed', label: 'ASCENT', short: 'ASCENT', unit: 'm', sample: '486' },
   heading: { name: 'Direction', label: 'DIRECTION', short: 'DIRECTION', unit: '42 deg', sample: 'NE' },
-  graph: { name: 'Power graph (needs a full row)', label: 'POWER 90s', short: 'POWER 90s', unit: '', sample: '', fullRow: true },
 };
 
 // Returns a message describing why rows cannot be drawn, or null if they can.
@@ -46,7 +46,6 @@ export function designProblem(rows) {
     if (!Array.isArray(row.cells) || row.cells.length < 1 || row.cells.length > MAX_CELLS) return `${at} needs one or two cells.`;
     for (const cell of row.cells) {
       if (!cell || !Object.hasOwn(METRICS, cell.metric)) return `${at} has an unsupported metric.`;
-      if (METRICS[cell.metric].fullRow && row.cells.length !== 1) return `${at}: the power graph needs a full row.`;
       if (cell.zone !== undefined && typeof cell.zone !== 'boolean') return `${at} has an invalid zone setting.`;
       if (cell.stats !== undefined && typeof cell.stats !== 'boolean') return `${at} has an invalid avg/max setting.`;
       if (cell.graph !== undefined && typeof cell.graph !== 'boolean') return `${at} has an invalid graph setting.`;
@@ -117,7 +116,7 @@ const row = (size, ...cells) => ({ size, cells: cells.map(cell => (typeof cell =
 const zoned = metric => ({ metric, zone: true });
 
 export const PRESETS = [
-  { id: 'balanced', name: 'Balanced', rows: [row(3, zoned('power')), row(1, 'graph'), row(2, zoned('heartRate'), 'cadence'), row(2, 'speed', 'distance')] },
+  { id: 'balanced', name: 'Balanced', rows: [row(3, { metric: 'power', zone: true, graph: true }), row(2, zoned('heartRate'), 'cadence'), row(2, 'speed', 'distance')] },
   { id: 'climbing', name: 'Climbing', rows: [row(3, zoned('power')), row(2, 'grade', 'ascent'), row(2, zoned('heartRate'), 'cadence'), row(1, 'speed', 'distance')] },
   // One large field, one full-width field, then pairs getting denser below.
   { id: 'wahoo', name: 'Wahoo style', align: 'center', rows: [row(2, zoned('power')), row(1, 'speed'), row(1, zoned('heartRate'), 'cadence'), row(1, 'distance', 'elapsed'), row(1, 'avgPower', 'avgSpeed')] },
@@ -126,9 +125,17 @@ export const PRESETS = [
   { id: 'dense', name: 'Data dense', rows: [row(1, 'power', 'heartRate'), row(1, 'cadence', 'speed'), row(1, 'distance', 'elapsed'), row(1, 'grade', 'ascent'), row(1, 'avgPower', 'heading')] },
 ];
 
-// Version 1 designs were three full-width rows of equal height.
+// Brings a stored design up to date. Version 1 designs were three full-width
+// rows of equal height. The stand-alone power graph row has been removed in
+// favour of the graph layout on power and heart-rate cells, so such rows are
+// dropped.
 export function upgrade(design) {
-  if (!design || design.version !== 1 || !Array.isArray(design.fields)) return design;
-  const { fields, ...rest } = design;
-  return { ...rest, version: SCHEMA, rows: fields.map(metric => row(2, metric)) };
+  if (!design) return design;
+  if (design.version === 1 && Array.isArray(design.fields)) {
+    const { fields, ...rest } = design;
+    return { ...rest, version: SCHEMA, rows: fields.map(metric => row(2, metric)) };
+  }
+  if (!Array.isArray(design.rows) || !design.rows.some(old => old?.cells?.some(cell => cell?.metric === 'graph'))) return design;
+  const rows = design.rows.filter(old => !old.cells.some(cell => cell.metric === 'graph'));
+  return { ...design, rows: rows.length ? rows : [row(2, 'power')] };
 }

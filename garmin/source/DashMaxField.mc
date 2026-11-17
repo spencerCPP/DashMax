@@ -485,6 +485,31 @@ class DashMaxField extends WatchUi.DataField {
                       : DesignConfig.powerBounds(_design.config),
             ];
         }
+        if (id.equals("wkg")) {
+            // Live power over the rider's Garmin profile weight; coloured by
+            // the same power zones as the power cell.
+            var perKgWatts = _drawActivity
+                ? _ride.power
+                : _drawMissing
+                  ? null
+                  : _drawStopped
+                    ? 0
+                    : _drawAnimate
+                      ? DashMath.mockPower(_tick)
+                      : 312;
+            return [
+                "WATTS/KG",
+                "W/KG",
+                "",
+                DashMath.perKg(perKgWatts, _zones.weightGrams),
+                perKgWatts,
+                _zones.power != null
+                    ? _zones.power
+                    : _zones.powerFromFtp != null
+                      ? _zones.powerFromFtp
+                      : DesignConfig.powerBounds(_design.config),
+            ];
+        }
         if (id.equals("avgPower")) {
             var average = _drawActivity ? _ride.averagePower : _drawMissing ? null : 284;
             return ["AVG POWER", "AVG PWR", "W", number(average, ""), null, null];
@@ -602,9 +627,6 @@ class DashMaxField extends WatchUi.DataField {
                 null,
             ];
         }
-        if (id.equals("graph")) {
-            return ["POWER 90s", "POWER 90s", "", "", null, null];
-        }
         return ["", "", "", "--", null, null];
     }
 
@@ -646,26 +668,6 @@ class DashMaxField extends WatchUi.DataField {
                 : [speed(24.1, _drawImperial), speed(52.3, _drawImperial)];
         }
         return null;
-    }
-
-    function drawGraph(dc, left, top, width, height) {
-        dc.setColor(_ink, Graphics.COLOR_TRANSPARENT);
-        for (var i = 1; i < 90; i += 1) {
-            var a = _history[(_head + i - 1) % 90];
-            var b = _history[(_head + i) % 90];
-            if (a == null || b == null) {
-                continue;
-            }
-            // Keep recorded spikes within the fixed 0-450 W graph scale.
-            a = a < 0 ? 0 : a > 450 ? 450 : a;
-            b = b < 0 ? 0 : b > 450 ? 450 : b;
-            dc.drawLine(
-                x(left + ((i - 1) * (width * 1.0)) / 89),
-                y(top + height - (a * (height * 1.0)) / 450),
-                x(left + (i * (width * 1.0)) / 89),
-                y(top + height - (b * (height * 1.0)) / 450)
-            );
-        }
     }
 
     // Filled history graph in the current box, coloured by zone under an
@@ -901,11 +903,6 @@ class DashMaxField extends WatchUi.DataField {
                     Graphics.TEXT_JUSTIFY_RIGHT
                 );
             }
-        }
-        if (cell["metric"].equals("graph")) {
-            px = left + pad;
-            drawGraph(dc, px, valueTop, inner, valueHeight);
-            return;
         }
         var font = null;
         var spare = 0;

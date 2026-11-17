@@ -46,6 +46,12 @@ function testLongRideFormatting(logger) {
     Test.assertEqual(DashMath.distance(999.9, false), "999.9");
     Test.assertEqual(DashMath.distance(1000.0, false), "1000");
     Test.assertEqual(DashMath.distance(1609.344, true), "1000");
+    Test.assertEqual(DashMath.perKg(312, 70000), "4.46");
+    Test.assertEqual(DashMath.perKg(0, 70000), "0.00");
+    Test.assertEqual(DashMath.perKg(250.0, 62500), "4.00");
+    Test.assertEqual(DashMath.perKg(null, 70000), "--");
+    Test.assertEqual(DashMath.perKg(312, null), "--");
+    Test.assertEqual(DashMath.perKg(312, 0), "--");
     Test.assertEqual(DashMath.clock(14, 5, true)[0], "14:05");
     Test.assertEqual(DashMath.clock(14, 5, true)[1], "");
     Test.assertEqual(DashMath.clock(14, 5, false)[0], "2:05");

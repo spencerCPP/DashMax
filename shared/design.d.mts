@@ -1,6 +1,6 @@
 export type Cell = { metric: string; zone?: boolean; stats?: boolean; graph?: boolean };
 export type Row = { size: number; cells: Cell[] };
-export type Metric = { name: string; label: string; short: string; unit: string; sample: string; zone?: boolean; fullRow?: boolean; stats?: string[]; trend?: boolean };
+export type Metric = { name: string; label: string; short: string; unit: string; sample: string; zone?: boolean; stats?: string[]; trend?: boolean };
 export type Box = { top: number; height: number; cells: (Cell & { left: number; width: number })[] };
 export const SCHEMA: number;
 export const WIDTH: number;

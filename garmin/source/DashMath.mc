@@ -60,6 +60,14 @@ module DashMath {
         return [twelve.format("%d") + ":" + minutes, hour < 12 ? "AM" : "PM"];
     }
 
+    // Watts per kilogram with two decimals, from watts and a weight in grams.
+    function perKg(watts, grams) {
+        if (watts == null || grams == null || grams <= 0) {
+            return "--";
+        }
+        return ((watts * 1000.0) / grams).format("%.2f");
+    }
+
     // Percent with one decimal; never "-0.0".
     function grade(percent) {
         if (percent == null) {

@@ -7,6 +7,8 @@ class GarminZones {
     var power = null;
     // Zones worked out from Garmin's FTP, for when Garmin returns no zones.
     var powerFromFtp = null;
+    // Rider weight from the Garmin profile, in grams, for watts per kilogram.
+    var weightGrams = null;
     // What Garmin returned for power zones, for diagnosis: the raw limits
     // joined by "/", or "none", "unsupported" or "error".
     var powerRaw = "unread";
@@ -122,6 +124,12 @@ class GarminZones {
                     power = found;
                 }
             }
+        }
+        try {
+            var rider = UserProfile.getProfile();
+            weightGrams = rider == null ? null : rider.weight;
+        } catch (error) {
+            weightGrams = null;
         }
         // Second choice: Garmin's FTP with Garmin's default zone percentages.
         powerFromFtp = null;

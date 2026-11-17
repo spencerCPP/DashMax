@@ -16,7 +16,7 @@ function testRemoteDesignValidation(logger) {
         "revision" => 1,
         "rows" => [
             designRow(3, ["power"]),
-            designRow(1, ["graph"]),
+            designRow(1, ["wkg"]),
             designRow(2, ["heartRate", "cadence"]),
             designRow(2, ["grade", "ascent"]),
         ],
@@ -80,7 +80,8 @@ function testDesignRowRules(logger) {
     );
     Test.assert(DesignConfig.rowsProblem([designRow(1, ["wind"])]) != null);
     Test.assert(
-        DesignConfig.rowsProblem([designRow(1, ["graph", "power"])]) != null
+        // The stand-alone graph row no longer exists.
+        DesignConfig.rowsProblem([designRow(1, ["graph"])]) != null
     );
     var seven = [];
     for (var i = 0; i < 7; i += 1) {
@@ -116,7 +117,7 @@ function testDesignRowRules(logger) {
     // Same boxes as layout() in shared/design.test.mjs.
     var rows = [
         designRow(3, ["power"]),
-        designRow(1, ["graph"]),
+        designRow(1, ["speed"]),
         designRow(2, ["heartRate", "cadence"]),
         designRow(2, ["speed", "distance"]),
     ];

@@ -35,8 +35,8 @@ module DesignConfig {
                 id.equals("clock") ||
                 id.equals("grade") ||
                 id.equals("ascent") ||
-                id.equals("heading") ||
-                id.equals("graph"))
+                id.equals("wkg") ||
+                id.equals("heading"))
         );
     }
     function whole(value, minimum, maximum) {
@@ -85,9 +85,6 @@ module DesignConfig {
                     !metric(cell["metric"])
                 ) {
                     return "Unsupported metric at row " + i.toString();
-                }
-                if (cell["metric"].equals("graph") && cells.size() != 1) {
-                    return "Graph needs a full row";
                 }
             }
             var size = row["size"].toNumber();

@@ -19,8 +19,9 @@ test('row and cell rules', () => {
   assert.ok(designProblem([row(1)]));
   assert.ok(designProblem([row(1, 'wind')]));
   assert.ok(designProblem([row(1, 'constructor')]));
-  assert.ok(designProblem([row(1, 'graph', 'power')]));
-  assert.equal(designProblem([row(1, 'graph')]), null);
+  // The stand-alone graph row no longer exists.
+  assert.ok(designProblem([row(1, 'graph')]));
+  assert.equal(designProblem([row(1, 'wkg', 'clock')]), null);
   assert.ok(designProblem([{ size: 1, cells: [{ metric: 'power', zone: 'yes' }] }]));
   // A small row next to too much large content would fall below 40 px.
   assert.ok(designProblem([row(3, 'power'), row(3, 'speed'), row(3, 'grade'), row(1, 'ascent')]));
@@ -34,7 +35,7 @@ test('zone is kept only on metrics that have zones', () => {
 });
 
 test('layout fills the screen exactly with integer boxes', () => {
-  const boxes = layout([row(3, 'power'), row(1, 'graph'), row(2, 'heartRate', 'cadence'), row(2, 'speed', 'distance')]);
+  const boxes = layout([row(3, 'power'), row(1, 'speed'), row(2, 'heartRate', 'cadence'), row(2, 'speed', 'distance')]);
   assert.deepEqual(boxes.map(box => [box.top, box.height]), [[0, 120], [120, 41], [161, 80], [241, 81]]);
   assert.deepEqual(boxes[2].cells.map(cell => [cell.left, cell.width]), [[0, 123], [123, 123]]);
   assert.deepEqual(boxes[0].cells.map(cell => [cell.left, cell.width]), [[0, 246]]);
@@ -52,8 +53,14 @@ test('version 1 designs upgrade to three equal rows', () => {
   assert.equal(upgraded.fields, undefined);
   assert.equal(designProblem(upgraded.rows), null);
   assert.deepEqual(upgraded.rows.map(r => r.cells[0].metric), ['power', 'distance', 'elapsed']);
-  const current = { version: 2, rows: [] };
+  const current = { version: 2, rows: [row(2, 'power')] };
   assert.equal(upgrade(current), current);
+  // Stored designs lose their stand-alone graph rows and stay valid.
+  const graphed = upgrade({ version: 2, revision: 9, rows: [row(3, 'power'), row(1, 'graph'), row(2, 'speed')] });
+  assert.deepEqual(graphed.rows.map(r => r.cells[0].metric), ['power', 'speed']);
+  assert.equal(graphed.revision, 9);
+  assert.equal(designProblem(graphed.rows), null);
+  assert.deepEqual(upgrade({ version: 2, rows: [row(1, 'graph')] }).rows.map(r => r.cells[0].metric), ['power']);
 });
 
 test('power zones are optional, six rising whole-watt limits', () => {
