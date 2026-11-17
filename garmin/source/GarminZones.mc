@@ -5,6 +5,8 @@ using Toybox.Activity;
 class GarminZones {
     var heartRate = null;
     var power = null;
+    // Zones worked out from Garmin's FTP, for when Garmin returns no zones.
+    var powerFromFtp = null;
     // What Garmin returned for power zones, for diagnosis: the raw limits
     // joined by "/", or "none", "unsupported" or "error".
     var powerRaw = "unread";
@@ -65,7 +67,6 @@ class GarminZones {
         } catch (error) {
             heartRate = null;
         }
-        // Never derive stand-in thresholds from generic FTP percentages.
         // Garmin's call has been reported to return nothing on some Edges, so
         // ask under each sport the zones could be filed under and record
         // every answer for diagnosis.
@@ -121,6 +122,21 @@ class GarminZones {
                     power = found;
                 }
             }
+        }
+        // Second choice: Garmin's FTP with Garmin's default zone percentages.
+        powerFromFtp = null;
+        try {
+            if (UserProfile has :getFunctionalThresholdPower) {
+                var ftp = UserProfile.getFunctionalThresholdPower(
+                    Activity.SPORT_CYCLING
+                );
+                powerRaw += "|ftp:" + (ftp == null ? "none" : ftp.toString());
+                powerFromFtp = ZoneColors.fromFtp(ftp);
+            } else {
+                powerRaw += "|ftp:unsupported";
+            }
+        } catch (error) {
+            powerRaw += "|ftp:error";
         }
         if (!_reported) {
             logLimits("HR", heartRate);

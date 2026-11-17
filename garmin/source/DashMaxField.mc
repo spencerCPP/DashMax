@@ -443,8 +443,8 @@ class DashMaxField extends WatchUi.DataField {
                     : animate
                       ? DashMath.mockPower(_tick)
                       : 312;
-            // Garmin's own zones win; the design's are the fallback for
-            // devices where Garmin returns none.
+            // Garmin's own zones win, then zones from Garmin's FTP, then the
+            // limits entered in the designer.
             return [
                 "POWER",
                 "POWER",
@@ -453,7 +453,9 @@ class DashMaxField extends WatchUi.DataField {
                 watts,
                 _zones.power != null
                     ? _zones.power
-                    : DesignConfig.powerBounds(_design.config),
+                    : _zones.powerFromFtp != null
+                      ? _zones.powerFromFtp
+                      : DesignConfig.powerBounds(_design.config),
             ];
         }
         if (id.equals("avgPower")) {

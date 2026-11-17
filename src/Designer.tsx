@@ -111,7 +111,7 @@ export function Designer() {
           <button className="add-row" disabled={!allowed(next => { next.push({ size: 1, cells: [{ metric: 'speed' }] }); })} onClick={() => change(next => { next.push({ size: 1, cells: [{ metric: 'speed' }] }); })}>+ Add row</button>
           <p className="row-hint">Buttons grey out when a change would make a row too short to read on the device.</p>
           <h2>Power zones <span className="optional">optional</span></h2>
-          <p className="row-hint">Enter the top of zones 1 to 6 in watts, as shown in Garmin Connect. Zone 7 is everything above. The device uses its own Garmin power zones when it can read them, and these only when it cannot.</p>
+          <p className="row-hint">Enter the top of zones 1 to 6 in watts, as shown in Garmin Connect. Zone 7 is everything above. The device uses its own Garmin power zones when it can read them, then zones worked out from its Garmin FTP, and these only when it has neither.</p>
           <div className="zone-inputs">{zoneText.map((text, z) => <label key={z}>Z{z + 1} up to<input aria-label={`Top of power zone ${z + 1} in watts`} inputMode="numeric" value={text} placeholder="W" onChange={e => setZoneText(zoneText.map((old, i) => (i === z ? e.target.value : old)))}/></label>)}</div>
           <label className="designer-color">Background <span><input aria-label="Background color" type="color" value={color} onChange={e => setColor(e.target.value)}/><code>{color.toUpperCase()}</code></span></label>
           <button className="save-design" disabled={saving || !dirty || problem !== null} onClick={save}>{saving ? 'Saving…' : saved ? 'Save changes' : 'Save design'}</button>

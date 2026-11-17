@@ -61,8 +61,16 @@ Zone thresholds are read from Garmin’s user profile:
 
 The manifest includes the `UserProfile` permission.
 
-No generic FTP percentages or hardcoded physiological thresholds
-are substituted when Garmin limits are unavailable.
+Power zones are taken from the first source available:
+
+1. Garmin's power zones, read from the user profile.
+2. Garmin's FTP with Garmin's default zone percentages: the top of
+   zones 1 to 6 at 55, 75, 90, 105, 120 and 150 percent of FTP.
+3. Limits entered in the web designer.
+
+With none of these, power stays uncoloured. No FTP value or
+threshold is hardcoded. The percentages in step 2 were written
+from memory and should be checked against Garmin Connect.
 
 Only the power and HR sections receive zone colors.
 No additional zone labels are displayed.
@@ -202,15 +210,18 @@ simulator returns zones for the same call, and heart-rate zones
 work on the device. Other developers report the same on Edge 1040,
 1050 and 850 on Garmin's forum, with no confirmed fix.
 
-So the designer has an optional Power zones section: the top of
-zones 1 to 6 in watts, saved with the design as `powerZones`. The
-device uses Garmin's own zones whenever Garmin supplies them, and
-the design's only when it does not. With neither, power stays
-uncoloured. FTP percentages are still never substituted: the
-rider's real limits do not sit on the standard percentages.
+So the device falls back first to Garmin's FTP with Garmin's
+default percentages, then to an optional Power zones section in
+the designer: the top of zones 1 to 6 in watts, saved with the
+design as `powerZones`.
 
-The cost is that a change to zones in Garmin Connect must be
-repeated in the designer until Garmin's call works on the Edge.
+The FTP step keeps the device in step with Garmin without manual
+entry, but it is only exact for riders on default zones. The test
+rider's limits (126, 167, 206, 236, 277, 342 W) differ by up to
+5 W from the percentages applied to a 229 W FTP, so readings near
+a boundary can colour as the neighbouring zone. Whether the FTP
+call returns a value on the Edge 840 is not yet confirmed; the
+server's `Device power zones:` line includes it as `ftp:`.
 
 The device reports what Garmin returned for power zones with each
 design request, and the server logs it as `Device power zones:`.
@@ -473,7 +484,8 @@ setup so output capture can be established.
   which replaced the startup window.
 - Row-builder rendering on the device: text sizing in short and
   half-width cells and the graph row.
-- Power cell colouring on the Edge from the designer's zones.
+- Power cell colouring on the Edge from Garmin's FTP, and from the
+  designer's zones when FTP is unavailable.
 - Computed grade against Garmin's own grade field.
 - Garmin zone-array formats and zone-color boundary behavior.
 - Heading behavior across actual device conditions.

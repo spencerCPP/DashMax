@@ -68,3 +68,27 @@ function testOnlyPowerAndHeartRateRegionsAreFilled(logger) {
     Test.assertEqual(dc.rectangles.size(), 2);
     return true;
 }
+
+(:test)
+function testPowerZonesFromFtp(logger) {
+    var bounds = ZoneColors.fromFtp(200);
+    Test.assertEqual(bounds.size(), 8);
+    Test.assertEqual(bounds[0], 0);
+    Test.assertEqual(bounds[1], 110);
+    Test.assertEqual(bounds[2], 150);
+    Test.assertEqual(bounds[3], 180);
+    Test.assertEqual(bounds[4], 210);
+    Test.assertEqual(bounds[5], 240);
+    Test.assertEqual(bounds[6], 300);
+    Test.assert(ZoneColors.valid(bounds));
+    Test.assertEqual(ZoneColors.index(110, bounds), 0);
+    Test.assertEqual(ZoneColors.index(111, bounds), 1);
+    Test.assertEqual(ZoneColors.index(301, bounds), 6);
+    // Limits round to the nearest watt, and a decimal FTP is accepted.
+    Test.assertEqual(ZoneColors.fromFtp(229)[1], 126);
+    Test.assertEqual(ZoneColors.fromFtp(229)[2], 172);
+    Test.assertEqual(ZoneColors.fromFtp(229.0)[6], 344);
+    Test.assert(ZoneColors.fromFtp(null) == null);
+    Test.assert(ZoneColors.fromFtp(0) == null);
+    return true;
+}
