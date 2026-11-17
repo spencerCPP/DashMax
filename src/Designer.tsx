@@ -63,12 +63,18 @@ function Preview({ rows, background, foreground, center }: { rows: Row[]; backgr
       const stats = cell.stats === true && metric.stats && !half && box.height >= STATS_MIN_HEIGHT ? metric.stats : null;
       // Half-width cells put average and max on one small line under the value.
       const under = cell.stats === true && metric.stats && half && box.height >= STATS_HALF_MIN_HEIGHT ? metric.stats : null;
-      const tall = valueHeight - (under ? 17 : 0);
-      const size = Math.max(11, Math.min(tall * 1.05, (cell.width - 2 * pad - (stats ? 84 : 0)) / (Math.max(metric.sample.length, 1) * .42)));
+      // Like the device: stack them at the right when that keeps the value at
+      // least as large as it would be with the line underneath.
+      const digits = Math.max(metric.sample.length, 1) * .42;
+      const inner = cell.width - 2 * pad;
+      const besideSize = Math.min(valueHeight * 1.05, (inner - 50) / digits);
+      const beside = under !== null && besideSize >= Math.min((valueHeight - 17) * 1.05, inner / digits);
+      const tall = valueHeight - (under && !beside ? 17 : 0);
+      const size = beside ? besideSize : Math.max(11, Math.min(tall * 1.05, (inner - (stats ? 84 : 0)) / digits));
       return <div key={`${r}-${c}`} className="design-cell" style={{ left: cell.left, top: box.top, width: cell.width, height: box.height, padding: `${compact ? 2 : 8}px ${pad}px`, background: fill, color: fill ? '#000000' : undefined, borderTop: r ? '1px solid' : undefined, borderLeft: c ? '1px solid' : undefined, borderColor: foreground }}>
         <div className="design-label">{center ? <span>{half ? metric.short : metric.label} {metric.unit}</span> : <><span>{half ? metric.short : metric.label}</span><span>{metric.unit}</span></>}</div>
-        <div className="design-value"><strong style={{ fontSize: size, height: tall, lineHeight: `${tall}px` }}>{metric.sample}</strong>{stats && <div className="design-stats"><span>AVG {stats[0]}</span><span>MAX {stats[1]}</span></div>}</div>
-        {under && <div className="design-under">AVG {under[0]}&nbsp;&nbsp;MAX {under[1]}</div>}
+        <div className="design-value"><strong style={{ fontSize: size, height: tall, lineHeight: `${tall}px` }}>{metric.sample}</strong>{stats && <div className="design-stats"><span>AVG {stats[0]}</span><span>MAX {stats[1]}</span></div>}{under && beside && <div className="design-beside"><span>AVG {under[0]}</span><span>MAX {under[1]}</span></div>}</div>
+        {under && !beside && <div className="design-under">AVG {under[0]}&nbsp;&nbsp;MAX {under[1]}</div>}
       </div>;
     }))}
   </div>;

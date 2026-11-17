@@ -907,10 +907,69 @@ class DashMaxField extends WatchUi.DataField {
         var font = null;
         var spare = 0;
         // Average and maximum stack at the right of full-width cells at least
-        // 70 px tall. Half-width cells at least 80 px tall have no room
-        // beside the value, so they get one small line underneath it.
+        // 70 px tall. Half-width cells at least 80 px tall are handled first.
         var room = inner;
         if (stats != null && half && height >= 80) {
+            // Preferred: two small lines at the right, under the unit, with
+            // the value beside them. Used whenever that leaves the value at
+            // least as large as the alternative, one line under the value.
+            var average = "AVG " + stats[0];
+            var most = "MAX " + stats[1];
+            var stackWide = dc.getTextWidthInPixels(average, Graphics.FONT_XTINY);
+            var mostWide = dc.getTextWidthInPixels(most, Graphics.FONT_XTINY);
+            if (mostWide > stackWide) {
+                stackWide = mostWide;
+            }
+            var lineTall = dc.getFontHeight(Graphics.FONT_XTINY);
+            var band = y(valueHeight);
+            // fit() takes 246-unit widths; the stack was measured in pixels.
+            var beside = inner - 6 - (stackWide * 246.0) / _width;
+            var besideFont = fit(dc, data[3], beside, valueHeight);
+            var underFont = fit(dc, data[3], inner, valueHeight - 17);
+            var besideTall = dc.getFontHeight(besideFont);
+            if (2 * lineTall <= band && besideTall >= dc.getFontHeight(underFont)) {
+                px = x(left + width - pad);
+                py = y(valueTop) + (band - 2 * lineTall) / 2;
+                dc.drawText(
+                    px,
+                    py,
+                    Graphics.FONT_XTINY,
+                    average,
+                    Graphics.TEXT_JUSTIFY_RIGHT
+                );
+                py += lineTall;
+                dc.drawText(
+                    px,
+                    py,
+                    Graphics.FONT_XTINY,
+                    most,
+                    Graphics.TEXT_JUSTIFY_RIGHT
+                );
+                py = y(valueTop);
+                if (band > besideTall) {
+                    py += (band - besideTall) / 2;
+                }
+                if (center) {
+                    px = x(left + pad + beside / 2.0);
+                    dc.drawText(
+                        px,
+                        py,
+                        besideFont,
+                        data[3],
+                        Graphics.TEXT_JUSTIFY_CENTER
+                    );
+                } else {
+                    px = x(left + pad);
+                    dc.drawText(
+                        px,
+                        py,
+                        besideFont,
+                        data[3],
+                        Graphics.TEXT_JUSTIFY_LEFT
+                    );
+                }
+                return;
+            }
             valueHeight -= 17;
             var under = "AVG " + stats[0] + "  MAX " + stats[1];
             var underWide = dc.getTextWidthInPixels(under, Graphics.FONT_XTINY);

@@ -171,8 +171,10 @@ The web designer lets a user:
    and an
    average-and-max column for power, heart rate, cadence or speed
    in full-width rows at least 70 px tall. In a split row at least
-   80 px tall, average and max go on one small line under the
-   value instead.
+   80 px tall, average and max stack as two small lines at the
+   right, under the unit; if that would make the value smaller
+   than putting them on one line beneath it, the line beneath is
+   used instead.
    Power and heart rate can instead use a graph layout in
    full-width rows at least 75 px tall: the value on top and a
    history graph of the last 90 samples underneath, coloured by
