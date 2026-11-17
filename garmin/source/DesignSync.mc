@@ -7,7 +7,14 @@ using Toybox.System;
 using Toybox.Time;
 using Toybox.WatchUi;
 
+// Design format version 2: a stack of one to six rows, each small, medium or
+// large (size 1-3) and holding one or two cells. The same rules live in
+// shared/design.mjs for the web designer and server; change them together.
 module DesignConfig {
+    const SCHEMA = 2;
+    const WIDTH = 246;
+    const HEIGHT = 322;
+
     function sameString(a, b) {
         return (
             a instanceof Lang.String && b instanceof Lang.String && a.equals(b)
@@ -17,11 +24,18 @@ module DesignConfig {
         return (
             id instanceof Lang.String &&
             (id.equals("power") ||
+                id.equals("avgPower") ||
                 id.equals("heartRate") ||
-                id.equals("distance") ||
+                id.equals("avgHeartRate") ||
                 id.equals("cadence") ||
                 id.equals("speed") ||
-                id.equals("elapsed"))
+                id.equals("avgSpeed") ||
+                id.equals("distance") ||
+                id.equals("elapsed") ||
+                id.equals("grade") ||
+                id.equals("ascent") ||
+                id.equals("heading") ||
+                id.equals("graph"))
         );
     }
     function whole(value, minimum, maximum) {
@@ -37,31 +51,69 @@ module DesignConfig {
             value >= minimum && value <= maximum && value == value.toNumber()
         );
     }
+    function rowsProblem(rows) {
+        if (
+            !(rows instanceof Lang.Array) ||
+            rows.size() < 1 ||
+            rows.size() > 6
+        ) {
+            return "Expected one to six rows";
+        }
+        var total = 0;
+        var smallest = 3;
+        for (var i = 0; i < rows.size(); i += 1) {
+            var row = rows[i];
+            if (
+                !(row instanceof Lang.Dictionary) ||
+                !whole(row["size"], 1, 3)
+            ) {
+                return "Invalid size at row " + i.toString();
+            }
+            var cells = row["cells"];
+            if (
+                !(cells instanceof Lang.Array) ||
+                cells.size() < 1 ||
+                cells.size() > 2
+            ) {
+                return "Expected one or two cells at row " + i.toString();
+            }
+            for (var c = 0; c < cells.size(); c += 1) {
+                var cell = cells[c];
+                if (
+                    !(cell instanceof Lang.Dictionary) ||
+                    !metric(cell["metric"])
+                ) {
+                    return "Unsupported metric at row " + i.toString();
+                }
+                if (cell["metric"].equals("graph") && cells.size() != 1) {
+                    return "Graph needs a full row";
+                }
+            }
+            var size = row["size"].toNumber();
+            total += size;
+            if (size < smallest) {
+                smallest = size;
+            }
+        }
+        // Keeps the shortest row at 40 px or more on the 322 px screen.
+        if (total > 8 * smallest) {
+            return "Rows are too short to read";
+        }
+        return null;
+    }
     function problem(data) {
         if (!(data instanceof Lang.Dictionary)) {
             return "Response is not a JSON object";
         }
-        if (!whole(data["version"], 1, 1)) {
+        if (!whole(data["version"], SCHEMA, SCHEMA)) {
             return "Unsupported configuration version";
         }
         if (!(data["id"] instanceof Lang.String) || data["id"].length() != 12) {
             return "Missing or invalid design ID";
         }
-        var fields = data["fields"];
-        if (!(fields instanceof Lang.Array) || fields.size() != 3) {
-            return "Expected exactly three fields";
-        }
-        for (var i = 0; i < 3; i += 1) {
-            if (!metric(fields[i])) {
-                return "Unsupported metric at slot " + i.toString();
-            }
-        }
-        if (
-            sameString(fields[0], fields[1]) ||
-            sameString(fields[0], fields[2]) ||
-            sameString(fields[1], fields[2])
-        ) {
-            return "Duplicate metrics";
+        var reason = rowsProblem(data["rows"]);
+        if (reason != null) {
+            return reason;
         }
         if (!whole(data["background"], 0, 0xffffff)) {
             return "Background is not a whole RGB value";
@@ -83,7 +135,27 @@ module DesignConfig {
         data["revision"] = data["revision"].toNumber();
         data["background"] = data["background"].toNumber();
         data["foreground"] = data["foreground"].toNumber();
+        var rows = data["rows"];
+        for (var i = 0; i < rows.size(); i += 1) {
+            rows[i]["size"] = rows[i]["size"].toNumber();
+        }
         return data;
+    }
+    // Top edge of row `index` in 322 px units; index rows.size() is the bottom.
+    // Integer maths, matching layout() in shared/design.mjs.
+    function rowTop(rows, index) {
+        var total = 0;
+        var before = 0;
+        for (var i = 0; i < rows.size(); i += 1) {
+            total += rows[i]["size"];
+            if (i < index) {
+                before += rows[i]["size"];
+            }
+        }
+        return (HEIGHT * before) / total;
+    }
+    function cellLeft(count, index) {
+        return (WIDTH * index) / count;
     }
 }
 
@@ -178,9 +250,15 @@ class DesignSync {
         try {
             Communications.makeWebRequest(
                 _server + "/api/designs/" + _id,
-                // Tell the server which revision is on screen, so its log
-                // shows when this device picked each save up.
-                config == null ? null : { "have" => config["revision"] },
+                // Tell the server which format this build can draw and which
+                // revision is on screen, so its log shows when this device
+                // picked each save up.
+                config == null
+                    ? { "schema" => DesignConfig.SCHEMA }
+                    : {
+                          "schema" => DesignConfig.SCHEMA,
+                          "have" => config["revision"],
+                      },
                 {
                     :method => Communications.HTTP_REQUEST_METHOD_GET,
                     :responseType

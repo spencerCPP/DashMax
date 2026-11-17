@@ -119,24 +119,7 @@ class DashMaxField extends WatchUi.DataField {
 
     // Measure native fonts against BOTH available width and height.
     function text(dc, value, left, top, width, height, color, right) {
-        var font = Graphics.FONT_XTINY;
-        var numeric = true;
-        for (var c = 0; c < value.length(); c += 1) {
-            if ("0123456789.:- ".find(value.substring(c, c + 1)) == null) {
-                numeric = false;
-                break;
-            }
-        }
-        for (var i = numeric ? 0 : 3; i < _fonts.size(); i += 1) {
-            var candidate = _fonts[i];
-            if (
-                dc.getTextWidthInPixels(value, candidate) <= x(width) &&
-                dc.getFontHeight(candidate) <= y(height)
-            ) {
-                font = candidate;
-                break;
-            }
-        }
+        var font = fit(dc, value, width, height);
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         dc.drawText(
             x(right ? left + width : left),
@@ -426,6 +409,241 @@ class DashMaxField extends WatchUi.DataField {
         label(dc, stopped ? "PAUSED" : "TIME", 165, 306, 69, true);
     }
 
+    // Largest native font that fits BOTH the width and height given.
+    function fit(dc, value, width, height) {
+        var numeric = true;
+        for (var c = 0; c < value.length(); c += 1) {
+            if ("0123456789.:- ".find(value.substring(c, c + 1)) == null) {
+                numeric = false;
+                break;
+            }
+        }
+        for (var i = numeric ? 0 : 3; i < _fonts.size(); i += 1) {
+            var candidate = _fonts[i];
+            if (
+                dc.getTextWidthInPixels(value, candidate) <= x(width) &&
+                dc.getFontHeight(candidate) <= y(height)
+            ) {
+                return candidate;
+            }
+        }
+        return Graphics.FONT_XTINY;
+    }
+
+    // [label, short label, unit, value, zone reading, zone limits] for a metric.
+    function cellData(id, imperial, activity, missing, stopped, animate) {
+        var speedUnit = imperial ? "mph" : "km/h";
+        if (id.equals("power")) {
+            var watts = activity
+                ? _ride.power
+                : missing
+                  ? null
+                  : stopped
+                    ? 0
+                    : animate
+                      ? DashMath.mockPower(_tick)
+                      : 312;
+            return ["POWER", "POWER", "W", number(watts, ""), watts, _zones.power];
+        }
+        if (id.equals("avgPower")) {
+            var average = activity ? _ride.averagePower : missing ? null : 284;
+            return ["AVG POWER", "AVG PWR", "W", number(average, ""), null, null];
+        }
+        if (id.equals("heartRate")) {
+            var beats = activity ? _ride.heartRate : missing ? null : 158;
+            return [
+                "HEART RATE",
+                "HR",
+                "bpm",
+                number(beats, ""),
+                beats,
+                _zones.heartRate,
+            ];
+        }
+        if (id.equals("avgHeartRate")) {
+            var averageBeats = activity
+                ? _ride.averageHeartRate
+                : missing
+                  ? null
+                  : 142;
+            return [
+                "AVG HEART RATE",
+                "AVG HR",
+                "bpm",
+                number(averageBeats, ""),
+                null,
+                null,
+            ];
+        }
+        if (id.equals("cadence")) {
+            var turns = activity ? _ride.cadence : missing ? null : stopped ? 0 : 92;
+            return ["CADENCE", "CADENCE", "rpm", number(turns, ""), null, null];
+        }
+        if (id.equals("speed")) {
+            var kmh = activity ? _ride.speedKmh : stopped ? 0.0 : 26.8;
+            return ["SPEED", "SPEED", speedUnit, speed(kmh, imperial), null, null];
+        }
+        if (id.equals("avgSpeed")) {
+            var averageKmh = activity ? _ride.averageSpeedKmh : 24.1;
+            return [
+                "AVG SPEED",
+                "AVG SPD",
+                speedUnit,
+                speed(averageKmh, imperial),
+                null,
+                null,
+            ];
+        }
+        if (id.equals("distance")) {
+            var km = activity ? _ride.distanceKm : 42.7;
+            return [
+                "DISTANCE",
+                "DISTANCE",
+                imperial ? "mi" : "km",
+                km == null ? "--" : DashMath.distance(km, imperial),
+                null,
+                null,
+            ];
+        }
+        if (id.equals("elapsed")) {
+            var seconds = activity ? _ride.elapsedSeconds : 5784 + _tick;
+            return [
+                "ELAPSED",
+                "ELAPSED",
+                "",
+                seconds == null ? "--" : DashMath.elapsed(seconds),
+                null,
+                null,
+            ];
+        }
+        if (id.equals("grade")) {
+            var slope = activity ? _ride.grade : stopped ? null : 3.2;
+            return ["GRADE", "GRADE", "%", DashMath.grade(slope), null, null];
+        }
+        if (id.equals("ascent")) {
+            // Elevation has its own unit setting, separate from distance.
+            var feet =
+                System.getDeviceSettings().elevationUnits ==
+                System.UNIT_STATUTE;
+            var climbed = activity ? _ride.ascentM : 486;
+            return [
+                "ASCENT",
+                "ASCENT",
+                feet ? "ft" : "m",
+                DashMath.ascent(climbed, feet),
+                null,
+                null,
+            ];
+        }
+        if (id.equals("heading")) {
+            var degrees = activity
+                ? _ride.headingDegrees
+                : stopped
+                  ? null
+                  : 42.0;
+            return [
+                "DIRECTION",
+                "DIRECTION",
+                degrees == null
+                    ? ""
+                    : ((degrees + 0.5).toNumber() % 360).format("%d") + " deg",
+                DashMath.headingName(degrees),
+                null,
+                null,
+            ];
+        }
+        if (id.equals("graph")) {
+            return ["POWER 90s", "POWER 90s", "", "", null, null];
+        }
+        return ["", "", "", "--", null, null];
+    }
+
+    function drawGraph(dc, left, top, width, height) {
+        dc.setColor(_ink, Graphics.COLOR_TRANSPARENT);
+        for (var i = 1; i < 90; i += 1) {
+            var a = _history[(_head + i - 1) % 90];
+            var b = _history[(_head + i) % 90];
+            if (a == null || b == null) {
+                continue;
+            }
+            // Keep recorded spikes within the fixed 0-450 W graph scale.
+            a = a < 0 ? 0 : a > 450 ? 450 : a;
+            b = b < 0 ? 0 : b > 450 ? 450 : b;
+            dc.drawLine(
+                x(left + ((i - 1) * (width * 1.0)) / 89),
+                y(top + height - (a * (height * 1.0)) / 450),
+                x(left + (i * (width * 1.0)) / 89),
+                y(top + height - (b * (height * 1.0)) / 450)
+            );
+        }
+    }
+
+    // One cell of a designed row. Coordinates are in 246 x 322 units.
+    function drawCell(dc, cell, left, top, width, height, half, data) {
+        var ink = _ink;
+        if (cell["zone"] == true && data[5] != null) {
+            var selected = ZoneColors.palette(
+                ZoneColors.index(data[4], data[5]),
+                data[5].size() - 1
+            );
+            if (selected != null) {
+                dc.setColor(selected[0], Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(
+                    x(left),
+                    y(top),
+                    x(left + width) - x(left),
+                    y(top + height) - y(top)
+                );
+                ink = selected[1] ? Graphics.COLOR_WHITE : Graphics.COLOR_BLACK;
+            }
+        }
+        // Short rows tuck the label closer to the top edge.
+        var compact = height < 70;
+        var pad = half ? 8 : 12;
+        var inner = width - 2 * pad;
+        var labelTop = top + (compact ? 2 : 8);
+        var valueTop = labelTop + (compact ? 15 : 18);
+        var valueHeight = top + height - valueTop - (compact ? 2 : 8);
+        var title = half ? data[1] : data[0];
+        dc.setColor(ink, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(
+            x(left + pad),
+            y(labelTop),
+            Graphics.FONT_XTINY,
+            title,
+            Graphics.TEXT_JUSTIFY_LEFT
+        );
+        // The unit shares the label line, and is dropped if it would collide.
+        if (
+            data[2].length() > 0 &&
+            dc.getTextWidthInPixels(title, Graphics.FONT_XTINY) +
+                dc.getTextWidthInPixels(data[2], Graphics.FONT_XTINY) +
+                x(6) <=
+                x(inner)
+        ) {
+            dc.drawText(
+                x(left + width - pad),
+                y(labelTop),
+                Graphics.FONT_XTINY,
+                data[2],
+                Graphics.TEXT_JUSTIFY_RIGHT
+            );
+        }
+        if (cell["metric"].equals("graph")) {
+            drawGraph(dc, left + pad, valueTop, inner, valueHeight);
+            return;
+        }
+        var font = fit(dc, data[3], inner, valueHeight);
+        var spare = y(valueHeight) - dc.getFontHeight(font);
+        dc.drawText(
+            x(left + pad),
+            y(valueTop) + (spare > 0 ? spare / 2 : 0),
+            font,
+            data[3],
+            Graphics.TEXT_JUSTIFY_LEFT
+        );
+    }
+
     function drawDesign(dc, imperial, activity, missing, stopped, animate) {
         var config = _design.config;
         if (config == null) {
@@ -433,76 +651,44 @@ class DashMaxField extends WatchUi.DataField {
             label(dc, "Check the sync console", 12, 170, 222, false);
             return;
         }
+        _zones.refresh();
         _ink = config["foreground"];
         _muted = _ink;
         dc.setColor(_ink, config["background"]);
         dc.clear();
-        var fields = config["fields"];
-        for (var i = 0; i < 3; i += 1) {
-            var id = fields[i];
-            var top = (i * 322) / 3;
-            var title = "";
-            var unit = "";
-            var value = "--";
-            if (id.equals("power")) {
-                title = "POWER";
-                unit = "W";
-                value = activity
-                    ? number(_ride.power, "")
-                    : missing
-                      ? "--"
-                      : stopped
-                        ? "0"
-                        : animate
-                          ? number(DashMath.mockPower(_tick), "")
-                          : "312";
-            } else if (id.equals("heartRate")) {
-                title = "HEART RATE";
-                unit = "bpm";
-                value = activity
-                    ? number(_ride.heartRate, "")
-                    : missing
-                      ? "--"
-                      : "158";
-            } else if (id.equals("distance")) {
-                title = "DISTANCE";
-                unit = imperial ? "mi" : "km";
-                var km = activity ? _ride.distanceKm : 42.7;
-                value = km == null ? "--" : DashMath.distance(km, imperial);
-            } else if (id.equals("cadence")) {
-                title = "CADENCE";
-                unit = "rpm";
-                value = activity
-                    ? number(_ride.cadence, "")
-                    : missing
-                      ? "--"
-                      : stopped
-                        ? "0"
-                        : "92";
-            } else if (id.equals("speed")) {
-                title = "SPEED";
-                unit = imperial ? "mph" : "km/h";
-                value = activity
-                    ? speed(_ride.speedKmh, imperial)
-                    : stopped
-                      ? "0.0"
-                      : speed(26.8, imperial);
-            } else if (id.equals("elapsed")) {
-                title = "ELAPSED";
-                var elapsed = activity ? _ride.elapsedSeconds : 5784 + _tick;
-                value = elapsed == null ? "--" : DashMath.elapsed(elapsed);
-            }
-            label(dc, title, 12, top + 10, 222, false);
-            text(dc, value, 12, top + 32, 180, 60, _ink, false);
-            label(dc, unit, 195, top + 70, 39, true);
-            if (i < 2) {
-                dc.setColor(_ink, Graphics.COLOR_TRANSPARENT);
-                dc.drawLine(
-                    x(12),
-                    y(((i + 1) * 322) / 3),
-                    x(234),
-                    y(((i + 1) * 322) / 3)
+        var rows = config["rows"];
+        for (var i = 0; i < rows.size(); i += 1) {
+            var top = DesignConfig.rowTop(rows, i);
+            var height = DesignConfig.rowTop(rows, i + 1) - top;
+            var cells = rows[i]["cells"];
+            var count = cells.size();
+            for (var c = 0; c < count; c += 1) {
+                var left = DesignConfig.cellLeft(count, c);
+                drawCell(
+                    dc,
+                    cells[c],
+                    left,
+                    top,
+                    DesignConfig.cellLeft(count, c + 1) - left,
+                    height,
+                    count > 1,
+                    cellData(
+                        cells[c]["metric"],
+                        imperial,
+                        activity,
+                        missing,
+                        stopped,
+                        animate
+                    )
                 );
+            }
+            // Dividers go on last so zone fills do not cover them.
+            dc.setColor(_ink, Graphics.COLOR_TRANSPARENT);
+            if (count > 1) {
+                dc.drawLine(x(123), y(top), x(123), y(top + height));
+            }
+            if (i > 0) {
+                dc.drawLine(0, y(top), _width, y(top));
             }
         }
     }

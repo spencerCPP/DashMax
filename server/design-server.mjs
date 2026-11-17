@@ -3,15 +3,16 @@ import { existsSync, readFileSync, mkdirSync, writeFileSync, renameSync } from '
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { SCHEMA, designProblem, normalizeRows, upgrade } from '../shared/design.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const metrics = new Set(['power', 'heartRate', 'distance', 'cadence', 'speed', 'elapsed']);
 // Local wall-clock time, to line server logs up against device logs.
 const clock = () => new Date().toTimeString().slice(0, 8);
 export function validateSelection(value) {
-  if (!value || !Array.isArray(value.fields) || value.fields.length !== 3 || new Set(value.fields).size !== 3 || !value.fields.every(field => metrics.has(field))) throw new Error('Choose exactly three different supported metrics.');
+  const problem = designProblem(value?.rows);
+  if (problem) throw new Error(problem);
   if (!Number.isInteger(value.background) || value.background < 0 || value.background > 0xffffff) throw new Error('Background must be an RGB color.');
-  return { fields: [...value.fields], background: value.background };
+  return { rows: normalizeRows(value.rows), background: value.background };
 }
 export function foregroundFor(color) {
   const channels = [color >> 16 & 255, color >> 8 & 255, color & 255].map(n => n / 255).map(n => n <= .04045 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4);
@@ -21,6 +22,8 @@ export function foregroundFor(color) {
 export function createDesignServer({ dataDir = path.join(root, '.dashmax-designs'), distDir = path.join(root, 'dist'), logger = console.log } = {}) {
   const file = path.join(dataDir, 'designs.json');
   const designs = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
+  // Designs saved by earlier versions are served in the current format.
+  for (const id of Object.keys(designs)) designs[id] = upgrade(designs[id]);
   const persist = () => { mkdirSync(dataDir, { recursive: true }); writeFileSync(`${file}.tmp`, JSON.stringify(designs, null, 2), { mode: 0o600 }); renameSync(`${file}.tmp`, file); };
   // Last revision each design's device said it was showing; not persisted.
   const shown = {};
@@ -34,6 +37,12 @@ export function createDesignServer({ dataDir = path.join(root, '.dashmax-designs
       if (match && req.method === 'GET') {
         const design = designs[match[1]];
         if (!design) return json(res, 404, { error: 'Design not found.' });
+        // A build that states an older format than the design uses cannot draw it.
+        const schema = /^\d{1,3}$/.test(url.searchParams.get('schema') || '') ? Number(url.searchParams.get('schema')) : null;
+        if (schema !== null && schema < design.version) {
+          logger(`${clock()} Design refused: ${design.id} needs format ${design.version}, device supports ${schema}`);
+          return json(res, 409, { error: 'This DashMax build is too old for this design. Install a newer build.' });
+        }
         const have = /^\d{1,10}$/.test(url.searchParams.get('have') || '') ? Number(url.searchParams.get('have')) : null;
         logger(`${clock()} Design fetched: ${design.id} revision ${design.revision}${have === null ? '' : ` (device has ${have})`}`);
         if (have !== null && have !== shown[design.id]) {
@@ -47,13 +56,13 @@ export function createDesignServer({ dataDir = path.join(root, '.dashmax-designs
       }
       if ((pathname === '/api/designs' && req.method === 'POST') || (match && req.method === 'PUT')) {
         let body = '';
-        for await (const chunk of req) { body += chunk; if (Buffer.byteLength(body) > 4096) return json(res, 413, { error: 'Design is too large.' }); }
+        for await (const chunk of req) { body += chunk; if (Buffer.byteLength(body) > 8192) return json(res, 413, { error: 'Design is too large.' }); }
         let selection;
         try { selection = validateSelection(JSON.parse(body)); } catch (error) { return json(res, 400, { error: error.message }); }
         const id = match ? match[1] : randomBytes(6).toString('hex');
         if (match && !designs[id]) return json(res, 404, { error: 'Design not found.' });
         const previous = designs[id];
-        const design = { version: 1, id, revision: (previous?.revision || 0) + 1, ...selection, foreground: foregroundFor(selection.background), savedAt: Math.floor(Date.now() / 1000) };
+        const design = { version: SCHEMA, id, revision: (previous?.revision || 0) + 1, ...selection, foreground: foregroundFor(selection.background), savedAt: Math.floor(Date.now() / 1000) };
         designs[id] = design;
         try { persist(); } catch (error) { if (previous) designs[id] = previous; else delete designs[id]; throw error; }
         logger(`${clock()} Design saved: ${id} revision ${design.revision}`);

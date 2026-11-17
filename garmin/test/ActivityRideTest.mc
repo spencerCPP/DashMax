@@ -11,6 +11,8 @@ class PlaybackTestInfo {
     var averageSpeed = null;
     var elapsedDistance = null;
     var elapsedTime = null;
+    var altitude = null;
+    var totalAscent = null;
     function initialize() {}
 }
 
@@ -125,5 +127,54 @@ function testActivityHeadingRequiresMovingGpsCourse(logger) {
     info.currentHeading = null;
     ride.update(info, 3);
     Test.assert(ride.headingDegrees == null);
+    return true;
+}
+
+(:test)
+function testGradeAndAscent(logger) {
+    var ride = new ActivityRide();
+    var info = new PlaybackTestInfo();
+    info.elapsedTime = 1000;
+    info.elapsedDistance = 0.0;
+    info.altitude = 100.0;
+    info.totalAscent = 486.0;
+    ride.update(info, 0);
+    // One sample is not a slope.
+    Test.assert(ride.grade == null);
+    Test.assertEqual(ride.ascentM, 486.0);
+    info.elapsedTime = 2000;
+    info.elapsedDistance = 50.0;
+    info.altitude = 102.5;
+    ride.update(info, 0);
+    Test.assert(DashMath.absolute(ride.grade - 5.0) < 0.001);
+    // Measured from the oldest sample in the window, so descents show too.
+    info.elapsedTime = 3000;
+    info.elapsedDistance = 100.0;
+    info.altitude = 97.0;
+    ride.update(info, 0);
+    Test.assert(DashMath.absolute(ride.grade + 3.0) < 0.001);
+    // Barely moving: too little distance to trust.
+    var slow = new ActivityRide();
+    info.elapsedTime = 1000;
+    info.elapsedDistance = 0.0;
+    slow.update(info, 0);
+    info.elapsedTime = 2000;
+    info.elapsedDistance = 2.0;
+    slow.update(info, 0);
+    Test.assert(slow.grade == null);
+    // No altitude source.
+    info.elapsedTime = 3000;
+    info.elapsedDistance = 60.0;
+    info.altitude = null;
+    info.totalAscent = null;
+    slow.update(info, 0);
+    Test.assert(slow.grade == null);
+    Test.assert(slow.ascentM == null);
+    Test.assertEqual(DashMath.grade(null), "--");
+    Test.assertEqual(DashMath.grade(-0.04), "0.0");
+    Test.assertEqual(DashMath.grade(-3.26), "-3.3");
+    Test.assertEqual(DashMath.ascent(486.0, false), "486");
+    Test.assertEqual(DashMath.ascent(100.0, true), "328");
+    Test.assertEqual(DashMath.ascent(null, true), "--");
     return true;
 }

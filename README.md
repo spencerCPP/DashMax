@@ -23,7 +23,7 @@ Distance and time use measured canvas text widths and resize when fonts finish l
 
 ## Web designer → Garmin transfer test
 
-Run `npm run designer` to choose three metrics and a background, save a design ID, and update that design. The separate `garmin:design` target fetches the configuration over HTTPS and caches it. See [the macOS test guide](docs/designer-test.md) for the tunnel, initial pairing command, and the no-rebuild acceptance check. No Store publication is needed for simulator testing. Web/API tests pass; the new native network path still requires local SDK validation.
+Run `npm run designer` to build a screen from rows of metrics (with presets), choose a background, save a design ID, and update that design. The separate `garmin:design` target fetches the configuration over HTTPS and caches it. See [the macOS test guide](docs/designer-test.md) for the tunnel, initial pairing command, and the no-rebuild acceptance check. No Store publication is needed for simulator testing. Web/API tests pass; the new native network path still requires local SDK validation.
 
 ## Garmin Edge 840 simulator
 

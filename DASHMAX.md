@@ -145,27 +145,58 @@ Current direction indicator:
 
 We built a minimal end-to-end transfer test.
 
+The first version transferred exactly three metrics and a
+background colour. It has been replaced by the row builder below.
+
+## Web Designer: Row Builder
+
 The web designer lets a user:
 
-1. Select exactly three different metrics.
-2. Select a background color.
-3. Save a design.
-4. Edit and save that same design again.
+1. Start from a preset: Balanced, Climbing, Three rows, Big two,
+   or Data dense.
+2. Stack one to six rows, each small, medium or large.
+3. Put one or two metrics in each row.
+4. Turn on zone colouring for power and heart-rate cells.
+5. Select a background color.
+6. Save, then edit and save that same design again.
 
 Supported metrics:
 
-- Power.
-- Heart rate.
-- Distance.
+- Power and average power.
+- Heart rate and average heart rate.
 - Cadence.
-- Speed.
+- Speed and average speed.
+- Distance.
 - Elapsed time.
+- Current grade.
+- Elevation climbed.
+- Direction (N, NE, E ...) with bearing.
+- Power graph (needs a full row).
 
-The power row is labelled POWER on both the web preview and the
-device.
+Rules, enforced in the designer, the server and the device:
 
-The test uses three fixed rows.
-It is not yet a freeform layout editor.
+- The shortest row must be at least 40 px tall, so a small row
+  cannot sit beside too much large content.
+- Row and cell boxes use the same integer maths on web and device,
+  checked against the same example in both test suites.
+
+Current grade is not supplied by Garmin to data fields. DashMax
+computes it from altitude gained over distance covered in roughly
+the last eight seconds, and shows `--` when nearly stationary or
+without altitude. It needs comparing against Garmin's own grade
+field on real rides.
+
+Elevation climbed uses Garmin's total ascent and follows the
+device's elevation unit setting, which is separate from distance.
+
+Zone-coloured cells use the rider's Garmin zones, as on the
+original dashboard. The web preview shows example colours.
+
+There is one design per device. Multiple pages or profiles are not
+built.
+
+The format is defined once in `shared/design.mjs` for the web and
+server, and mirrored natively in `garmin/source/DesignSync.mc`.
 
 ### Configuration service
 
@@ -180,9 +211,9 @@ Endpoints:
 Each saved design has:
 
 - A unique design ID.
-- A schema version.
+- A schema version (currently 2).
 - A revision number.
-- Three metric identifiers.
+- Its rows, each with a size and one or two cells.
 - A background RGB value.
 - A contrasting foreground RGB value.
 - The time it was saved, in epoch seconds.
@@ -190,10 +221,13 @@ Each saved design has:
 Example:
 
     {
-      "version": 1,
+      "version": 2,
       "id": "abcdef123456",
       "revision": 2,
-      "fields": ["power", "distance", "elapsed"],
+      "rows": [
+        {"size": 3, "cells": [{"metric": "power", "zone": true}]},
+        {"size": 2, "cells": [{"metric": "grade"}, {"metric": "ascent"}]}
+      ],
       "background": 16776960,
       "foreground": 0,
       "savedAt": 1794873727
@@ -204,6 +238,11 @@ Designs persist locally in the ignored directory:
     .dashmax-designs/
 
 The service stores layout settings, not FIT files or ride telemetry.
+
+Designs saved in the version 1 format are upgraded to three equal
+rows when the server loads them. The device tells the server which
+format it can draw; a build older than the design gets a refusal
+and keeps its cached layout.
 
 ### Native fetch and rendering
 
@@ -407,6 +446,9 @@ setup so output capture can be established.
 
 - Paced pre-ride polling (30 seconds, 5 seconds after a change),
   which replaced the startup window.
+- Row-builder rendering on the device: text sizing in short and
+  half-width cells, zone-coloured cells, and the graph row.
+- Computed grade against Garmin's own grade field.
 - Garmin zone-array formats and zone-color boundary behavior.
 - Heading behavior across actual device conditions.
 - Physical Edge → paired phone → HTTPS service connectivity.
@@ -417,7 +459,9 @@ setup so output capture can be established.
 - Stable hosted production backend.
 - Authentication and design ownership.
 - Production device pairing/settings flow.
-- Expanded constrained layout designer.
+- Colour swatches chosen on the device (the Edge's backlit screen
+  shifts colours; a free colour picker is misleading).
+- Multiple designs per device.
 - Store release and distribution workflow.
 
 ## Useful Commands
@@ -462,9 +506,9 @@ See:
 
 ## Recommended Next Steps
 
-1. Validate paced pre-ride polling in the simulator and on a
-   physical Edge.
-2. Deploy a stable hosted backend to replace the temporary tunnel.
-3. Expand the web designer using constrained, native-supported
-   layouts and a versioned shared configuration schema.
-4. Add ownership and read-only device authorization.
+1. Validate the row builder on the simulator and a physical Edge,
+   and tune text sizing for short and half-width cells.
+2. Check computed grade against Garmin's own on a real ride.
+3. Deploy a stable hosted backend to replace the temporary tunnel.
+4. Choose device-tested colour swatches.
+5. Add ownership and read-only device authorization.

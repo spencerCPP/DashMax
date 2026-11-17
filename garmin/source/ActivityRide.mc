@@ -13,7 +13,14 @@ class ActivityRide {
     var averageSpeedKmh = null;
     var distanceKm = null;
     var elapsedSeconds = null;
+    // Road grade in percent, from altitude gained over distance covered in
+    // roughly the last eight seconds. Null when stopped or without altitude.
+    var grade = null;
+    var ascentM = null;
     var resetHistory = false;
+    var _runs;
+    var _heights;
+    var _slot = 0;
     var _powers;
     var _times;
     var _head = 0;
@@ -22,6 +29,8 @@ class ActivityRide {
     function initialize() {
         _powers = new [3];
         _times = new [3];
+        _runs = new [8];
+        _heights = new [8];
     }
 
     function update(info, fallbackClock) {
@@ -37,6 +46,8 @@ class ActivityRide {
         var averageSpeed = info has :averageSpeed ? info.averageSpeed : null;
         var distance = info has :elapsedDistance ? info.elapsedDistance : null;
         var elapsed = info has :elapsedTime ? info.elapsedTime : null;
+        var altitude = info has :altitude ? info.altitude : null;
+        ascentM = info has :totalAscent ? info.totalAscent : null;
         headingDegrees =
             speed == null || speed < 1.0
                 ? null
@@ -59,12 +70,36 @@ class ActivityRide {
             _powers = new [3];
             _times = new [3];
             _head = 0;
+            _runs = new [8];
+            _heights = new [8];
+            _slot = 0;
             resetHistory = true;
         }
         _clock = clock;
         _powers[_head] = current;
         _times[_head] = clock;
         _head = (_head + 1) % 3;
+        grade = null;
+        if (altitude != null && distance != null) {
+            // _slot is the next write position, so scanning from it finds the
+            // oldest stored sample first.
+            for (var g = 0; g < 8; g += 1) {
+                var old = (_slot + g) % 8;
+                if (_runs[old] == null) {
+                    continue;
+                }
+                var run = distance - _runs[old];
+                // Too little ground covered gives a meaningless slope.
+                if (run >= 5.0) {
+                    grade = ((altitude - _heights[old]) * 100.0) / run;
+                    grade = grade > 40.0 ? 40.0 : grade < -40.0 ? -40.0 : grade;
+                }
+                break;
+            }
+            _runs[_slot] = distance;
+            _heights[_slot] = altitude;
+            _slot = (_slot + 1) % 8;
+        }
         // A missing current sensor reading must not display an old power value.
         power = null;
         if (current != null) {

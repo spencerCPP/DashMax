@@ -1,38 +1,47 @@
 using Toybox.Test;
 
+function designRow(size, metrics) {
+    var cells = [];
+    for (var i = 0; i < metrics.size(); i += 1) {
+        cells.add({ "metric" => metrics[i] });
+    }
+    return { "size" => size, "cells" => cells };
+}
+
 (:test)
 function testRemoteDesignValidation(logger) {
     var config = {
-        "version" => 1,
+        "version" => 2,
         "id" => "abcdef123456",
         "revision" => 1,
-        "fields" => ["power", "heartRate", "distance"],
+        "rows" => [
+            designRow(3, ["power"]),
+            designRow(1, ["graph"]),
+            designRow(2, ["heartRate", "cadence"]),
+            designRow(2, ["grade", "ascent"]),
+        ],
         "background" => 0xffffff,
         "foreground" => 0,
     };
     Test.assert(DesignConfig.valid(config));
-    config["fields"] = ["power", "power", "distance"];
-    Test.assert(!DesignConfig.valid(config));
-    config["fields"] = ["power", "cadence", "elapsed"];
-    Test.assert(DesignConfig.valid(config));
-    config["fields"] = ["power", "cadence", "unknown"];
-    Test.assert(!DesignConfig.valid(config));
-    config["fields"] = ["power", "cadence", "elapsed"];
-    config["version"] = 2;
-    Test.assert(!DesignConfig.valid(config));
+    Test.assert(!DesignConfig.valid(null));
+    // Version 1 designs and unknown future versions are both refused.
     config["version"] = 1;
+    Test.assert(!DesignConfig.valid(config));
+    config["version"] = 3;
+    Test.assert(!DesignConfig.valid(config));
+    config["version"] = 2;
     config["background"] = -1;
     Test.assert(!DesignConfig.valid(config));
-    Test.assert(!DesignConfig.valid(null));
+    config["background"] = 65279.5;
+    Test.assert(!DesignConfig.valid(config));
     // JSON decoding produces separately allocated strings and numeric wrappers.
     config["background"] = 65279.0;
     config["foreground"] = 0.0;
     config["revision"] = 1l;
-    config["version"] = 1.0;
-    config["fields"] = [
-        "power ".substring(0, 5),
-        "heartRate ".substring(0, 9),
-        "speed ".substring(0, 5),
+    config["version"] = 2.0;
+    config["rows"] = [
+        { "size" => 2.0, "cells" => [{ "metric" => "power ".substring(0, 5) }] },
     ];
     Test.assert(DesignConfig.valid(config));
     Test.assert(
@@ -43,15 +52,54 @@ function testRemoteDesignValidation(logger) {
     );
     config = DesignConfig.normalize(config);
     Test.assert(config["background"] instanceof Toybox.Lang.Number);
-    config["background"] = 65279.5;
-    Test.assert(!DesignConfig.valid(config));
-    config["background"] = 65279;
-    config["fields"] = [
-        "power ".substring(0, 5),
-        "power__".substring(0, 5),
-        "speed",
+    Test.assert(config["rows"][0]["size"] instanceof Toybox.Lang.Number);
+    return true;
+}
+
+(:test)
+function testDesignRowRules(logger) {
+    Test.assert(DesignConfig.rowsProblem([designRow(2, ["power"])]) == null);
+    Test.assert(DesignConfig.rowsProblem(null) != null);
+    Test.assert(DesignConfig.rowsProblem([]) != null);
+    Test.assert(DesignConfig.rowsProblem([designRow(4, ["power"])]) != null);
+    Test.assert(DesignConfig.rowsProblem([designRow(1, [])]) != null);
+    Test.assert(
+        DesignConfig.rowsProblem([designRow(1, ["power", "speed", "grade"])]) !=
+            null
+    );
+    Test.assert(DesignConfig.rowsProblem([designRow(1, ["wind"])]) != null);
+    Test.assert(
+        DesignConfig.rowsProblem([designRow(1, ["graph", "power"])]) != null
+    );
+    var seven = [];
+    for (var i = 0; i < 7; i += 1) {
+        seven.add(designRow(1, ["power"]));
+    }
+    Test.assert(DesignConfig.rowsProblem(seven) != null);
+    // Equal rows are always fine; one small row beside three large is not.
+    var large = [
+        designRow(3, ["power"]),
+        designRow(3, ["speed"]),
+        designRow(3, ["grade"]),
     ];
-    Test.assert(!DesignConfig.valid(config));
+    Test.assert(DesignConfig.rowsProblem(large) == null);
+    large.add(designRow(1, ["ascent"]));
+    Test.assert(DesignConfig.rowsProblem(large) != null);
+    // Same boxes as layout() in shared/design.test.mjs.
+    var rows = [
+        designRow(3, ["power"]),
+        designRow(1, ["graph"]),
+        designRow(2, ["heartRate", "cadence"]),
+        designRow(2, ["speed", "distance"]),
+    ];
+    Test.assertEqual(DesignConfig.rowTop(rows, 0), 0);
+    Test.assertEqual(DesignConfig.rowTop(rows, 1), 120);
+    Test.assertEqual(DesignConfig.rowTop(rows, 2), 161);
+    Test.assertEqual(DesignConfig.rowTop(rows, 3), 241);
+    Test.assertEqual(DesignConfig.rowTop(rows, 4), 322);
+    Test.assertEqual(DesignConfig.cellLeft(2, 1), 123);
+    Test.assertEqual(DesignConfig.cellLeft(2, 2), 246);
+    Test.assertEqual(DesignConfig.cellLeft(1, 1), 246);
     return true;
 }
 

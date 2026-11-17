@@ -49,6 +49,21 @@ module DashMath {
         );
     }
 
+    // Percent with one decimal; never "-0.0".
+    function grade(percent) {
+        if (percent == null) {
+            return "--";
+        }
+        return absolute(percent) < 0.05 ? "0.0" : percent.format("%.1f");
+    }
+
+    function ascent(metres, feet) {
+        if (metres == null) {
+            return "--";
+        }
+        return (feet ? metres * 3.280839895 : metres).format("%.0f");
+    }
+
     function mockPower(t) {
         return (
             290 +

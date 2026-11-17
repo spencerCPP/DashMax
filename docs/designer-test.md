@@ -1,6 +1,6 @@
-# Minimal web → Garmin design-sync test (macOS)
+# Web designer → Garmin design-sync test (macOS)
 
-No Connect IQ Store publication is required for the **simulator** test. This experiment adds a separate three-row screen, not a full layout editor. The browser chooses exactly three distinct metrics (power, HR, distance, cadence, speed, elapsed time) and an RGB background. Save creates a design ID. Subsequent saves update that same ID; the native field fetches and caches it. The selected background is used for all three rows; zone coloring is deliberately outside this minimum test.
+No Connect IQ Store publication is required for the **simulator** test. The browser builds a screen from a stack of one to six rows. Each row is small, medium or large and holds one or two metrics: power, average power, heart rate, average heart rate, cadence, speed, average speed, distance, elapsed time, current grade, elevation climbed, direction, or a full-row power graph. Power and heart-rate cells can take a zone colour from the rider's Garmin zones. Presets (Balanced, Climbing, Three rows, Big two, Data dense) give a starting point. Save creates a design ID. Subsequent saves update that same ID; the native field fetches and caches it. The format and its rules are defined in `shared/design.mjs` and mirrored natively in `garmin/source/DesignSync.mc`.
 
 ## 1. Start the designer and API
 
@@ -12,7 +12,7 @@ npm ci
 npm run designer
 ```
 
-Open the address printed by the server (`http://localhost:4175/designer`). Choose the three metrics and background, then **Save design**. Keep the page open and note its 12-character design ID. The URL includes that ID after saving, so refreshing the page restores the saved design.
+Open the address printed by the server (`http://localhost:4175/designer`). Pick a preset or build your rows, choose a background, then **Save design**. Keep the page open and note its 12-character design ID. The URL includes that ID after saving, so refreshing the page restores the saved design.
 
 The Node server serves both the web build and JSON API. Designs are persisted locally in ignored `.dashmax-designs/designs.json`. Keep the server running. No FIT files or ride telemetry are sent to this server.
 
@@ -35,7 +35,7 @@ Verify the tunnel is serving the saved configuration before launching:
 curl --fail 'https://YOUR-TUNNEL.trycloudflare.com/api/designs/YOUR_DESIGN_ID'
 ```
 
-It should return a small JSON object with the three `fields`, RGB `background`, `foreground`, and `revision`. Keep normal TLS verification enabled.
+It should return a small JSON object with `rows`, RGB `background`, `foreground`, and `revision`. Keep normal TLS verification enabled.
 
 ## 3. Launch the native field (initial pairing)
 
@@ -67,7 +67,7 @@ The device also tells the server which revision it is showing, and checks in aga
 
 This measures save-to-screen time on the computer's clock alone, and works on a physical Edge without reading its log file over USB. It includes the extra check-in request, so it reads a second or two longer than the device's own figure.
 
-The device should show the selected three metrics and background. Until a valid config arrives, it shows a waiting message. The designer server logs each fetched design/revision, which helps diagnose whether requests arrive.
+The device should show the designed rows and background. Until a valid config arrives, it shows a waiting message. The designer server logs each fetched design/revision, which helps diagnose whether requests arrive.
 
 ## 4. Prove changes arrive without rebuilding
 
@@ -81,7 +81,7 @@ The browser preview uses mock values and web fonts. It verifies selection/order/
 
 ## 5. Prove offline behavior
 
-After a successful sync, stop the API server or tunnel. The field must keep its last valid screen. Restart the native field with the same endpoint/ID while offline to check that `Application.Storage` restores the cached configuration. When networking is restored, saving a new revision should update it again. Failed requests, invalid JSON/configurations, duplicate metrics, or unsupported configuration versions must not replace a valid cached design.
+After a successful sync, stop the API server or tunnel. The field must keep its last valid screen. Restart the native field with the same endpoint/ID while offline to check that `Application.Storage` restores the cached configuration. When networking is restored, saving a new revision should update it again. Failed requests, invalid JSON/configurations, layouts that break the row rules, or unsupported configuration versions must not replace a valid cached design.
 
 ## Optional: use FIT playback
 
@@ -95,7 +95,7 @@ Use the cadence correction only for the previously confirmed doubled simulator b
 
 ## What has and has not been validated
 
-- **Verified in this workspace:** web build/type check; browser selection/save/update/reload; three distinct metrics; background/foreground; API validation, same-ID revisions, persistence across server restarts; HTTPS launch-option validation; generated build inputs; native source syntax.
+- **Verified in this workspace:** web build/type check; browser selection/save/update/reload; row builder, presets and layout rules; background/foreground; API validation, same-ID revisions, persistence across server restarts; HTTPS launch-option validation; generated build inputs; native source syntax.
 - **Requires your local SDK:** native compilation of the new client, successful simulator HTTPS fetch, updates to the running field, offline cache restoration, and native tests (`npm run garmin:test`). The cloud environment cannot download Garmin's SDK. A passing API/browser test is not proof of native transfer.
 - **Not included:** accounts, hosted production backend, production pairing flow, automatic background sync while the field is closed, arbitrary layouts, or phone settings UI integration.
 

@@ -1,0 +1,15 @@
+export type Cell = { metric: string; zone?: boolean };
+export type Row = { size: number; cells: Cell[] };
+export type Metric = { name: string; label: string; short: string; unit: string; sample: string; zone?: boolean; fullRow?: boolean };
+export type Box = { top: number; height: number; cells: (Cell & { left: number; width: number })[] };
+export const SCHEMA: number;
+export const WIDTH: number;
+export const HEIGHT: number;
+export const MAX_ROWS: number;
+export const MAX_CELLS: number;
+export const METRICS: Record<string, Metric>;
+export const PRESETS: { id: string; name: string; rows: Row[] }[];
+export function designProblem(rows: unknown): string | null;
+export function normalizeRows(rows: Row[]): Row[];
+export function layout(rows: Row[]): Box[];
+export function upgrade<T>(design: T): T;
