@@ -86,18 +86,25 @@ module DesignConfig {
     }
 }
 
-// Startup-only sync: attempts are spaced INTERVAL seconds apart and stop for
-// good once DURATION seconds have passed since the first one.
-module SyncWindow {
-    const INTERVAL = 15;
-    const DURATION = 120;
+// Sync runs whenever no ride is in progress. It checks slowly by default and
+// quickly for a while after a change arrives, so an editing session previews
+// promptly without a manual toggle.
+module SyncPace {
+    const SLOW = 30;
+    const FAST = 5;
+    const FAST_FOR = 180;
 
-    // A timer that reads earlier than the start has wrapped; treat as closed.
-    function open(now, start) {
-        return now >= start && now - start <= DURATION;
+    // Seconds between requests, given when a new revision was last applied.
+    function interval(now, changedAt) {
+        return changedAt != null &&
+            now >= changedAt &&
+            now - changedAt <= FAST_FOR
+            ? FAST
+            : SLOW;
     }
-    function due(now, last) {
-        return last == null || now < last || now - last >= INTERVAL;
+    // A timer that reads earlier than the last attempt has wrapped; go again.
+    function due(now, last, seconds) {
+        return last == null || now < last || now - last >= seconds;
     }
     // A ride is in progress from Start until it is saved or discarded, so a
     // paused or stopped timer still counts. Unknown state does not.
@@ -110,9 +117,8 @@ class DesignSync {
     var config = null;
     var _server;
     var _id;
-    var _start = null;
     var _lastPoll = null;
-    var _closed = false;
+    var _changedAt = null;
     var _busy = false;
     var _riding = false;
 
@@ -142,21 +148,12 @@ class DesignSync {
             System.println("Design sync off while a ride is in progress");
         }
         _riding = riding;
-        if (_closed) {
-            return;
-        }
         var now = (System.getTimer() / 1000).toNumber();
-        if (_start == null) {
-            _start = now;
-        }
-        if (!SyncWindow.open(now, _start)) {
-            _closed = true;
-            System.println(
-                "Design sync window closed; keeping current screen"
-            );
-            return;
-        }
-        if (_riding || _busy || !SyncWindow.due(now, _lastPoll)) {
+        if (
+            _riding ||
+            _busy ||
+            !SyncPace.due(now, _lastPoll, SyncPace.interval(now, _changedAt))
+        ) {
             return;
         }
         _lastPoll = now;
@@ -230,6 +227,7 @@ class DesignSync {
             return;
         }
         config = data;
+        _changedAt = (System.getTimer() / 1000).toNumber();
         try {
             Application.Storage.setValue("designer.lastConfig", {
                 "server" => _server,

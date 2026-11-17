@@ -56,23 +56,26 @@ function testRemoteDesignValidation(logger) {
 }
 
 (:test)
-function testStartupSyncWindow(logger) {
-    // First attempt is immediate, then every 15 seconds.
-    Test.assert(SyncWindow.due(100, null));
-    Test.assert(!SyncWindow.due(114, 100));
-    Test.assert(SyncWindow.due(115, 100));
+function testSyncPacing(logger) {
+    // Slow by default, fast for three minutes after a change arrives.
+    Test.assertEqual(SyncPace.interval(100, null), 30);
+    Test.assertEqual(SyncPace.interval(100, 100), 5);
+    Test.assertEqual(SyncPace.interval(280, 100), 5);
+    Test.assertEqual(SyncPace.interval(281, 100), 30);
+    Test.assertEqual(SyncPace.interval(50, 100), 30);
+    // First attempt is immediate, then at the current interval.
+    Test.assert(SyncPace.due(100, null, 30));
+    Test.assert(!SyncPace.due(129, 100, 30));
+    Test.assert(SyncPace.due(130, 100, 30));
+    Test.assert(!SyncPace.due(104, 100, 5));
+    Test.assert(SyncPace.due(105, 100, 5));
     // A wrapped timer must not block the next attempt.
-    Test.assert(SyncWindow.due(3, 100));
-    // The window covers two minutes from the first attempt, inclusive.
-    Test.assert(SyncWindow.open(100, 100));
-    Test.assert(SyncWindow.open(220, 100));
-    Test.assert(!SyncWindow.open(221, 100));
-    Test.assert(!SyncWindow.open(99, 100));
-    // Sync is allowed only before a ride starts; paused still counts as riding.
-    Test.assert(!SyncWindow.riding(null));
-    Test.assert(!SyncWindow.riding(Toybox.Activity.TIMER_STATE_OFF));
-    Test.assert(SyncWindow.riding(Toybox.Activity.TIMER_STATE_ON));
-    Test.assert(SyncWindow.riding(Toybox.Activity.TIMER_STATE_PAUSED));
-    Test.assert(SyncWindow.riding(Toybox.Activity.TIMER_STATE_STOPPED));
+    Test.assert(SyncPace.due(3, 100, 30));
+    // Sync is allowed only when no ride is in progress; paused still counts.
+    Test.assert(!SyncPace.riding(null));
+    Test.assert(!SyncPace.riding(Toybox.Activity.TIMER_STATE_OFF));
+    Test.assert(SyncPace.riding(Toybox.Activity.TIMER_STATE_ON));
+    Test.assert(SyncPace.riding(Toybox.Activity.TIMER_STATE_PAUSED));
+    Test.assert(SyncPace.riding(Toybox.Activity.TIMER_STATE_STOPPED));
     return true;
 }
