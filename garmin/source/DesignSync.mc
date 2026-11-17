@@ -85,11 +85,28 @@ module DesignConfig {
     }
 }
 
+// Startup-only sync: attempts are spaced INTERVAL seconds apart and stop for
+// good once DURATION seconds have passed since the first one.
+module SyncWindow {
+    const INTERVAL = 15;
+    const DURATION = 120;
+
+    // A timer that reads earlier than the start has wrapped; treat as closed.
+    function open(now, start) {
+        return now >= start && now - start <= DURATION;
+    }
+    function due(now, last) {
+        return last == null || now < last || now - last >= INTERVAL;
+    }
+}
+
 class DesignSync {
     var config = null;
     var _server;
     var _id;
+    var _start = null;
     var _lastPoll = null;
+    var _closed = false;
     var _busy = false;
 
     function initialize(server, id) {
@@ -112,11 +129,21 @@ class DesignSync {
     }
 
     function poll() {
+        if (_closed) {
+            return;
+        }
         var now = (System.getTimer() / 1000).toNumber();
-        if (
-            _busy ||
-            (_lastPoll != null && now >= _lastPoll && now - _lastPoll < 15)
-        ) {
+        if (_start == null) {
+            _start = now;
+        }
+        if (!SyncWindow.open(now, _start)) {
+            _closed = true;
+            System.println(
+                "Design sync window closed; keeping current screen"
+            );
+            return;
+        }
+        if (_busy || !SyncWindow.due(now, _lastPoll)) {
             return;
         }
         _lastPoll = now;

@@ -54,3 +54,19 @@ function testRemoteDesignValidation(logger) {
     Test.assert(!DesignConfig.valid(config));
     return true;
 }
+
+(:test)
+function testStartupSyncWindow(logger) {
+    // First attempt is immediate, then every 15 seconds.
+    Test.assert(SyncWindow.due(100, null));
+    Test.assert(!SyncWindow.due(114, 100));
+    Test.assert(SyncWindow.due(115, 100));
+    // A wrapped timer must not block the next attempt.
+    Test.assert(SyncWindow.due(3, 100));
+    // The window covers two minutes from the first attempt, inclusive.
+    Test.assert(SyncWindow.open(100, 100));
+    Test.assert(SyncWindow.open(220, 100));
+    Test.assert(!SyncWindow.open(221, 100));
+    Test.assert(!SyncWindow.open(99, 100));
+    return true;
+}

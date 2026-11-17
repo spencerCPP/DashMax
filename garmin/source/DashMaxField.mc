@@ -68,6 +68,11 @@ class DashMaxField extends WatchUi.DataField {
 
     function compute(info) {
         var now = (System.getTimer() / 1000).toNumber();
+        // compute() runs even while another page is showing, so the startup
+        // sync window is not lost if the field is created off-screen.
+        if (_design != null) {
+            _design.poll();
+        }
         var activity = activityMode();
         if (activity != _activity) {
             _activity = activity;
