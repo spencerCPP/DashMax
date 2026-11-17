@@ -668,8 +668,8 @@ class DashMaxField extends WatchUi.DataField {
         }
     }
 
-    // Filled history graph in the current box: one bar per sample, coloured by
-    // that sample's zone, scaled to the range of the samples shown.
+    // Filled history graph in the current box, coloured by zone under an
+    // outline, scaled to the range of the samples shown.
     function drawZoneGraph(dc, history, bounds, fromZero) {
         var low = null;
         var high = null;
@@ -707,11 +707,28 @@ class DashMaxField extends WatchUi.DataField {
         }
         var bottom = y(_boxTop + _boxHeight);
         var full = bottom - y(_boxTop);
-        var step = _boxWidth / 90.0;
-        for (var b = 0; b < 90; b += 1) {
-            var value = history[(_head + b) % 90];
+        var first = x(_boxLeft);
+        var columns = x(_boxLeft + _boxWidth) - first;
+        if (columns < 2) {
+            return;
+        }
+        // One column per pixel, with the height sloped between neighbouring
+        // samples, then an outline joining the column tops.
+        var scale = 89.0 / (columns - 1);
+        var lastTop = null;
+        for (var p = 0; p < columns; p += 1) {
+            var position = p * scale;
+            var index = position.toNumber();
+            var value = history[(_head + index) % 90];
             if (value == null) {
+                lastTop = null;
                 continue;
+            }
+            if (index < 89) {
+                var next = history[(_head + index + 1) % 90];
+                if (next != null) {
+                    value = value + (next - value) * (position - index);
+                }
             }
             var color = 0xa6a6a6;
             if (colors != null) {
@@ -726,13 +743,17 @@ class DashMaxField extends WatchUi.DataField {
             } else if (tall > full) {
                 tall = full;
             }
-            var from = x(_boxLeft + b * step);
-            var wide = x(_boxLeft + (b + 1) * step) - from;
-            if (wide < 1) {
-                wide = 1;
-            }
+            var column = first + p;
+            var peak = bottom - tall;
             dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(from, bottom - tall, wide, tall);
+            dc.fillRectangle(column, peak, 1, tall);
+            dc.setColor(_ink, Graphics.COLOR_TRANSPARENT);
+            if (lastTop == null) {
+                dc.drawPoint(column, peak);
+            } else {
+                dc.drawLine(column - 1, lastTop, column, peak);
+            }
+            lastTop = peak;
         }
     }
 

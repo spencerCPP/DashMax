@@ -17,11 +17,18 @@ function Trend({ metric }: { metric: string }) {
   const [samples, tops, colors] = TREND[metric];
   const low = metric === 'power' ? 0 : Math.min(...samples) - 10;
   const high = Math.max(...samples) + 5;
-  return <svg className="design-trend" viewBox="0 0 90 100" preserveAspectRatio="none">{samples.map((value, i) => {
-    const tall = ((value - low) / (high - low)) * 100;
+  // One column per device pixel, sloped between samples, as the device draws it.
+  const columns = Array.from({ length: 222 }, (_, p) => {
+    const position = (p * 89) / 221;
+    const index = Math.floor(position);
+    const value = samples[index] + ((samples[index + 1] ?? samples[index]) - samples[index]) * (position - index);
     const zone = tops.findIndex(top => value <= top);
-    return <rect key={i} x={i} y={100 - tall} width={1.02} height={tall} fill={colors[zone < 0 ? tops.length : zone]}/>;
-  })}</svg>;
+    return { tall: ((value - low) / (high - low)) * 100, color: colors[zone < 0 ? tops.length : zone] };
+  });
+  return <svg className="design-trend" viewBox="0 0 222 100" preserveAspectRatio="none">
+    {columns.map((column, p) => <rect key={p} x={p} y={100 - column.tall} width={1.05} height={column.tall} fill={column.color}/>)}
+    <polyline points={columns.map((column, p) => `${p + .5},${100 - column.tall}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="1" vectorEffect="non-scaling-stroke"/>
+  </svg>;
 }
 
 const copyRows = (rows: Row[]) => rows.map(row => ({ size: row.size, cells: row.cells.map(cell => ({ ...cell })) }));
