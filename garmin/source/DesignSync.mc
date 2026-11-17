@@ -115,6 +115,14 @@ module DesignConfig {
         if (reason != null) {
             return reason;
         }
+        var align = data["align"];
+        if (
+            align != null &&
+            !sameString(align, "left") &&
+            !sameString(align, "center")
+        ) {
+            return "Invalid text alignment";
+        }
         if (data["powerZones"] != null && powerBounds(data) == null) {
             return "Invalid power zones";
         }
@@ -165,6 +173,9 @@ module DesignConfig {
         // Zone 7 has no upper limit.
         bounds.add(100000);
         return bounds;
+    }
+    function centered(data) {
+        return sameString(data["align"], "center");
     }
     // Top edge of row `index` in 322 px units; index rows.size() is the bottom.
     // Integer maths, matching layout() in shared/design.mjs.

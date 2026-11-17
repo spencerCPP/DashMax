@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { designProblem, zonesProblem, normalizeRows, layout, upgrade, PRESETS, METRICS } from './design.mjs';
+import { designProblem, zonesProblem, alignProblem, normalizeRows, layout, upgrade, PRESETS, METRICS } from './design.mjs';
 
 const row = (size, ...metrics) => ({ size, cells: metrics.map(metric => ({ metric })) });
 
@@ -67,4 +67,10 @@ test('power zones are optional, six rising whole-watt limits', () => {
   assert.ok(zonesProblem([126.5, 167, 206, 236, 277, 342]));
   assert.ok(zonesProblem([126, 167, 206, 236, 277, 6000]));
   assert.ok(zonesProblem('126,167'));
+});
+
+test('alignment is optional, left or centre', () => {
+  for (const align of [undefined, null, 'left', 'center']) assert.equal(alignProblem(align), null);
+  for (const align of ['right', 'centre', 1, true]) assert.ok(alignProblem(align));
+  for (const preset of PRESETS) assert.equal(alignProblem(preset.align), null);
 });

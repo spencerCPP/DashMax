@@ -3,7 +3,7 @@ import { existsSync, readFileSync, mkdirSync, writeFileSync, renameSync } from '
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { SCHEMA, designProblem, zonesProblem, normalizeRows, upgrade } from '../shared/design.mjs';
+import { SCHEMA, designProblem, zonesProblem, alignProblem, normalizeRows, upgrade } from '../shared/design.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Local wall-clock time, to line server logs up against device logs.
@@ -14,7 +14,9 @@ export function validateSelection(value) {
   if (!Number.isInteger(value.background) || value.background < 0 || value.background > 0xffffff) throw new Error('Background must be an RGB color.');
   const zones = zonesProblem(value.powerZones);
   if (zones) throw new Error(zones);
-  return { rows: normalizeRows(value.rows), background: value.background, ...(value.powerZones ? { powerZones: [...value.powerZones] } : {}) };
+  const align = alignProblem(value.align);
+  if (align) throw new Error(align);
+  return { rows: normalizeRows(value.rows), background: value.background, ...(value.powerZones ? { powerZones: [...value.powerZones] } : {}), ...(value.align === 'center' ? { align: 'center' } : {}) };
 }
 export function foregroundFor(color) {
   const channels = [color >> 16 & 255, color >> 8 & 255, color & 255].map(n => n / 255).map(n => n <= .04045 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4);

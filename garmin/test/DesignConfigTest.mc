@@ -51,6 +51,14 @@ function testRemoteDesignValidation(logger) {
         )
     );
     config = DesignConfig.normalize(config);
+    Test.assert(!DesignConfig.centered(config));
+    config["align"] = "center ".substring(0, 6);
+    Test.assert(DesignConfig.valid(config));
+    Test.assert(DesignConfig.centered(config));
+    config["align"] = "right";
+    Test.assert(!DesignConfig.valid(config));
+    config["align"] = "left";
+    Test.assert(DesignConfig.valid(config));
     Test.assert(config["background"] instanceof Toybox.Lang.Number);
     Test.assert(config["rows"][0]["size"] instanceof Toybox.Lang.Number);
     return true;

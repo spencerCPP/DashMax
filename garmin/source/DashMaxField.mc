@@ -592,7 +592,7 @@ class DashMaxField extends WatchUi.DataField {
     }
 
     // One cell of a designed row. Coordinates are in 246 x 322 units.
-    function drawCell(dc, cell, left, top, width, height, half, data) {
+    function drawCell(dc, cell, left, top, width, height, half, center, data) {
         var ink = _ink;
         if (cell["zone"] == true && data[5] != null) {
             var selected = ZoneColors.palette(
@@ -619,28 +619,40 @@ class DashMaxField extends WatchUi.DataField {
         var valueHeight = top + height - valueTop - (compact ? 2 : 8);
         var title = half ? data[1] : data[0];
         dc.setColor(ink, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(
-            x(left + pad),
-            y(labelTop),
-            Graphics.FONT_XTINY,
-            title,
-            Graphics.TEXT_JUSTIFY_LEFT
-        );
-        // The unit shares the label line, and is dropped if it would collide.
-        if (
+        var unitFits =
             data[2].length() > 0 &&
             dc.getTextWidthInPixels(title, Graphics.FONT_XTINY) +
                 dc.getTextWidthInPixels(data[2], Graphics.FONT_XTINY) +
                 x(6) <=
-                x(inner)
-        ) {
+                x(inner);
+        if (center) {
+            // Label and unit share one centred line; the unit is dropped if
+            // the pair would not fit.
             dc.drawText(
-                x(left + width - pad),
+                x(left + width / 2.0),
                 y(labelTop),
                 Graphics.FONT_XTINY,
-                data[2],
-                Graphics.TEXT_JUSTIFY_RIGHT
+                unitFits ? title + " " + data[2] : title,
+                Graphics.TEXT_JUSTIFY_CENTER
             );
+        } else {
+            dc.drawText(
+                x(left + pad),
+                y(labelTop),
+                Graphics.FONT_XTINY,
+                title,
+                Graphics.TEXT_JUSTIFY_LEFT
+            );
+            // The unit sits at the right of the label line, if it fits.
+            if (unitFits) {
+                dc.drawText(
+                    x(left + width - pad),
+                    y(labelTop),
+                    Graphics.FONT_XTINY,
+                    data[2],
+                    Graphics.TEXT_JUSTIFY_RIGHT
+                );
+            }
         }
         if (cell["metric"].equals("graph")) {
             drawGraph(dc, left + pad, valueTop, inner, valueHeight);
@@ -649,11 +661,11 @@ class DashMaxField extends WatchUi.DataField {
         var font = fit(dc, data[3], inner, valueHeight);
         var spare = y(valueHeight) - dc.getFontHeight(font);
         dc.drawText(
-            x(left + pad),
+            center ? x(left + width / 2.0) : x(left + pad),
             y(valueTop) + (spare > 0 ? spare / 2 : 0),
             font,
             data[3],
-            Graphics.TEXT_JUSTIFY_LEFT
+            center ? Graphics.TEXT_JUSTIFY_CENTER : Graphics.TEXT_JUSTIFY_LEFT
         );
     }
 
@@ -671,6 +683,7 @@ class DashMaxField extends WatchUi.DataField {
         dc.setColor(_ink, config["background"]);
         dc.clear();
         var rows = config["rows"];
+        var center = DesignConfig.centered(config);
         for (var i = 0; i < rows.size(); i += 1) {
             var top = DesignConfig.rowTop(rows, i);
             var height = DesignConfig.rowTop(rows, i + 1) - top;
@@ -686,6 +699,7 @@ class DashMaxField extends WatchUi.DataField {
                     DesignConfig.cellLeft(count, c + 1) - left,
                     height,
                     count > 1,
+                    center,
                     cellData(
                         cells[c]["metric"],
                         imperial,

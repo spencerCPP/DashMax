@@ -168,6 +168,7 @@ The web designer lets a user:
 2. Stack one to six rows, each small, medium or large.
 3. Put one or two metrics in each row.
 4. Turn on zone colouring for power and heart-rate cells.
+   Choose left-aligned or centred text for the whole screen.
 5. Select a background color.
 6. Save, then edit and save that same design again.
 

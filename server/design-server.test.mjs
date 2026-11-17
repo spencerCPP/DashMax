@@ -22,7 +22,9 @@ test('design API validates, updates the same ID, and persists across server rest
     for(const body of [{fields:['power','heartRate','distance'],background:0},{rows:[],background:0},{rows:rows('power','heartRate','unknown'),background:0},{rows:[{size:1,cells:[{metric:'graph'},{metric:'power'}]}],background:0},{rows:rows('power','heartRate','distance'),background:-1},{rows:rows('power','heartRate','distance'),background:0x1000000}]) assert.equal((await request(`${base}/api/designs`,'POST',body)).status,400);
     const response=await request(`${base}/api/designs`,'POST',{rows:[{size:3,cells:[{metric:'power',zone:true}]},{size:2,cells:[{metric:'grade',zone:true},{metric:'ascent'}]}],background:0xffffff});
     assert.equal(response.status,201);const initial=await response.json();assert.match(initial.id,/^[a-f0-9]{12}$/);assert.equal(initial.foreground,0);assert.equal(initial.version,2);assert.deepEqual(initial.rows,[{size:3,cells:[{metric:'power',zone:true}]},{size:2,cells:[{metric:'grade'},{metric:'ascent'}]}]);assert.ok(Number.isInteger(initial.savedAt)&&Math.abs(initial.savedAt-Date.now()/1000)<5);
-    const updated=await (await request(`${base}/api/designs/${initial.id}`,'PUT',{rows:rows('cadence','speed','elapsed'),background:0,powerZones:[126,167,206,236,277,342]})).json();
+    const updated=await (await request(`${base}/api/designs/${initial.id}`,'PUT',{rows:rows('cadence','speed','elapsed'),background:0,powerZones:[126,167,206,236,277,342],align:'center'})).json();
+    assert.equal(updated.align,'center');assert.equal(initial.align,undefined);
+    assert.equal((await request(`${base}/api/designs/${initial.id}`,'PUT',{rows:rows('cadence','speed','elapsed'),background:0,align:'right'})).status,400);
     assert.deepEqual(updated.powerZones,[126,167,206,236,277,342]);assert.equal(initial.powerZones,undefined);
     assert.equal((await request(`${base}/api/designs/${initial.id}`,'PUT',{rows:rows('cadence','speed','elapsed'),background:0,powerZones:[126,167,206]})).status,400);
     assert.equal(updated.id,initial.id);assert.equal(updated.revision,2);assert.equal(updated.foreground,0xffffff);

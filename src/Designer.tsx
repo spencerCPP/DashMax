@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { METRICS, PRESETS, MAX_ROWS, WIDTH, HEIGHT, designProblem, zonesProblem, normalizeRows, layout, type Row } from '../shared/design.mjs';
 import './designer.css';
 
-type Design = { id: string; revision: number; rows: Row[]; background: number; foreground: number; powerZones?: number[] };
+type Design = { id: string; revision: number; rows: Row[]; background: number; foreground: number; powerZones?: number[]; align?: string };
 
 const SIZES = [[1, 'S'], [2, 'M'], [3, 'L']] as const;
 // Stand-ins for the preview; on the device the colour follows the rider's Garmin zones.
@@ -15,8 +15,8 @@ function contrast(color: string) {
   return (luminance + .05) / .05 >= 1.05 / (luminance + .05) ? '#000000' : '#ffffff';
 }
 
-function Preview({ rows, background, foreground }: { rows: Row[]; background: string; foreground: string }) {
-  return <div className="design-screen" style={{ width: WIDTH, height: HEIGHT, background, color: foreground }}>
+function Preview({ rows, background, foreground, center }: { rows: Row[]; background: string; foreground: string; center: boolean }) {
+  return <div className={center ? 'design-screen centered' : 'design-screen'} style={{ width: WIDTH, height: HEIGHT, background, color: foreground }}>
     {layout(rows).map((box, r) => box.cells.map((cell, c) => {
       const metric = METRICS[cell.metric];
       const half = box.cells.length > 1;
@@ -27,7 +27,7 @@ function Preview({ rows, background, foreground }: { rows: Row[]; background: st
       // Barlow Condensed digits are roughly 0.42 em wide.
       const size = Math.max(11, Math.min(valueHeight * 1.05, (cell.width - 2 * pad) / (Math.max(metric.sample.length, 1) * .42)));
       return <div key={`${r}-${c}`} className="design-cell" style={{ left: cell.left, top: box.top, width: cell.width, height: box.height, padding: `${compact ? 2 : 8}px ${pad}px`, background: fill, color: fill ? '#000000' : undefined, borderTop: r ? '1px solid' : undefined, borderLeft: c ? '1px solid' : undefined, borderColor: foreground }}>
-        <div className="design-label"><span>{half ? metric.short : metric.label}</span><span>{metric.unit}</span></div>
+        <div className="design-label">{center ? <span>{half ? metric.short : metric.label} {metric.unit}</span> : <><span>{half ? metric.short : metric.label}</span><span>{metric.unit}</span></>}</div>
         {cell.metric === 'graph'
           ? <svg className="design-graph" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline points="0,9 8,7 16,10 24,6 32,8 40,5 48,9 56,7 64,11 72,6 80,8 88,5 100,7" fill="none" stroke="currentColor" strokeWidth="1" vectorEffect="non-scaling-stroke"/></svg>
           : <strong style={{ fontSize: size, height: valueHeight, lineHeight: `${valueHeight}px` }}>{metric.sample}</strong>}
@@ -39,6 +39,7 @@ function Preview({ rows, background, foreground }: { rows: Row[]; background: st
 export function Designer() {
   const [rows, setRows] = useState<Row[]>(() => copyRows(PRESETS[0].rows));
   const [color, setColor] = useState('#ffffff');
+  const [center, setCenter] = useState(PRESETS[0].align === 'center');
   // Six text boxes; all empty means the design carries no power zones.
   const [zoneText, setZoneText] = useState<string[]>(() => Array(6).fill(''));
   const [saved, setSaved] = useState<Design | null>(null);
@@ -47,7 +48,7 @@ export function Designer() {
   const background = parseInt(color.slice(1), 16);
   const powerZones = zoneText.every(text => text.trim() === '') ? undefined : zoneText.map(text => (/^\d+$/.test(text.trim()) ? Number(text.trim()) : NaN));
   const problem = designProblem(rows) || zonesProblem(powerZones);
-  const dirty = !saved || saved.background !== background || JSON.stringify(saved.rows) !== JSON.stringify(designProblem(rows) ? rows : normalizeRows(rows)) || JSON.stringify(saved.powerZones ?? null) !== JSON.stringify(powerZones ?? null);
+  const dirty = !saved || saved.background !== background || JSON.stringify(saved.rows) !== JSON.stringify(designProblem(rows) ? rows : normalizeRows(rows)) || JSON.stringify(saved.powerZones ?? null) !== JSON.stringify(powerZones ?? null) || (saved.align === 'center') !== center;
   // Applies an edit to a copy; edits that would break the layout rules are ignored.
   const change = (edit: (next: Row[]) => void) => { const next = copyRows(rows); edit(next); if (!designProblem(next)) setRows(next); };
   const allowed = (edit: (next: Row[]) => void) => { const next = copyRows(rows); edit(next); return !designProblem(next); };
@@ -59,7 +60,7 @@ export function Designer() {
     void fetch(`/api/designs/${id}`).then(async response => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      if (active) { setSaved(data); setRows(copyRows(data.rows)); setColor('#' + data.background.toString(16).padStart(6, '0')); setZoneText(data.powerZones ? data.powerZones.map(String) : Array(6).fill('')); }
+      if (active) { setSaved(data); setRows(copyRows(data.rows)); setColor('#' + data.background.toString(16).padStart(6, '0')); setZoneText(data.powerZones ? data.powerZones.map(String) : Array(6).fill('')); setCenter(data.align === 'center'); }
     }).catch(e => { if (active) setError(e.message); });
     return () => { active = false; };
   }, []);
@@ -67,7 +68,7 @@ export function Designer() {
   async function save() {
     setSaving(true); setError(''); setCopied(false);
     try {
-      const response = await fetch(saved ? `/api/designs/${saved.id}` : '/api/designs', { method: saved ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: normalizeRows(rows), background, powerZones }) });
+      const response = await fetch(saved ? `/api/designs/${saved.id}` : '/api/designs', { method: saved ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows: normalizeRows(rows), background, powerZones, align: center ? 'center' : 'left' }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not save design.');
       setSaved(data); setRows(copyRows(data.rows));
@@ -84,7 +85,7 @@ export function Designer() {
       <div className="designer-grid">
         <section className="designer-form">
           <h2>Start from a preset</h2>
-          <div className="preset-list">{PRESETS.map(preset => <button key={preset.id} className={JSON.stringify(preset.rows) === JSON.stringify(rows) ? 'selected' : ''} onClick={() => setRows(copyRows(preset.rows))}>{preset.name}</button>)}</div>
+          <div className="preset-list">{PRESETS.map(preset => <button key={preset.id} className={JSON.stringify(preset.rows) === JSON.stringify(rows) && (preset.align === 'center') === center ? 'selected' : ''} onClick={() => { setRows(copyRows(preset.rows)); setCenter(preset.align === 'center'); }}>{preset.name}</button>)}</div>
           <h2>Rows</h2>
           {rows.map((row, r) => <div className="row-editor" key={r}>
             <div className="row-tools">
@@ -110,6 +111,7 @@ export function Designer() {
           </div>)}
           <button className="add-row" disabled={!allowed(next => { next.push({ size: 1, cells: [{ metric: 'speed' }] }); })} onClick={() => change(next => { next.push({ size: 1, cells: [{ metric: 'speed' }] }); })}>+ Add row</button>
           <p className="row-hint">Buttons grey out when a change would make a row too short to read on the device.</p>
+          <div className="setting-line"><span>Text</span><div className="segmented" role="group" aria-label="Text alignment"><button className={!center ? 'active' : ''} onClick={() => setCenter(false)}>Left</button><button className={center ? 'active' : ''} onClick={() => setCenter(true)}>Centred</button></div></div>
           <h2>Power zones <span className="optional">optional</span></h2>
           <p className="row-hint">Enter the top of zones 1 to 6 in watts, as shown in Garmin Connect. Zone 7 is everything above. The device uses its own Garmin power zones when it can read them, then zones worked out from its Garmin FTP, and these only when it has neither.</p>
           <div className="zone-inputs">{zoneText.map((text, z) => <label key={z}>Z{z + 1} up to<input aria-label={`Top of power zone ${z + 1} in watts`} inputMode="numeric" value={text} placeholder="W" onChange={e => setZoneText(zoneText.map((old, i) => (i === z ? e.target.value : old)))}/></label>)}</div>
@@ -125,7 +127,7 @@ export function Designer() {
         </section>
         <section className="designer-preview">
           <div className="panel-heading"><span>LAYOUT PREVIEW · MOCK VALUES</span><span>{WIDTH} × {HEIGHT} PX</span></div>
-          <Preview rows={rows} background={color} foreground={foreground}/>
+          <Preview rows={rows} background={color} foreground={foreground} center={center}/>
           <p>Units follow the device's Garmin settings. Zone-coloured cells take their colour from the rider's Garmin power and heart-rate zones; the colours shown here are examples. Fonts differ on the device.</p>
         </section>
       </div>
