@@ -25,6 +25,7 @@ export const METRICS = {
   avgSpeed: { name: 'Average speed', label: 'AVG SPEED', short: 'AVG SPD', unit: 'km/h', sample: '24.1' },
   distance: { name: 'Distance', label: 'DISTANCE', short: 'DISTANCE', unit: 'km', sample: '42.7' },
   elapsed: { name: 'Elapsed time', label: 'ELAPSED', short: 'ELAPSED', unit: '', sample: '1:36:24' },
+  clock: { name: 'Time of day', label: 'TIME OF DAY', short: 'TIME', unit: '', sample: '14:05' },
   grade: { name: 'Current grade', label: 'GRADE', short: 'GRADE', unit: '%', sample: '3.2' },
   ascent: { name: 'Elevation climbed', label: 'ASCENT', short: 'ASCENT', unit: 'm', sample: '486' },
   heading: { name: 'Direction', label: 'DIRECTION', short: 'DIRECTION', unit: '42 deg', sample: 'NE' },

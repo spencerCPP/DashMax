@@ -49,6 +49,17 @@ module DashMath {
         );
     }
 
+    // [time, suffix] for the time of day: "14:05" with no suffix on a 24-hour
+    // device, or "2:05" with "AM"/"PM" on a 12-hour one.
+    function clock(hour, minute, is24Hour) {
+        var minutes = minute.format("%02d");
+        if (is24Hour) {
+            return [hour.format("%d") + ":" + minutes, ""];
+        }
+        var twelve = hour % 12 == 0 ? 12 : hour % 12;
+        return [twelve.format("%d") + ":" + minutes, hour < 12 ? "AM" : "PM"];
+    }
+
     // Percent with one decimal; never "-0.0".
     function grade(percent) {
         if (percent == null) {

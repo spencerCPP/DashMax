@@ -186,6 +186,7 @@ Supported metrics:
 - Speed and average speed.
 - Distance.
 - Elapsed time.
+- Time of day, following the device's 12/24-hour setting.
 - Current grade.
 - Elevation climbed.
 - Direction (N, NE, E ...) with bearing.

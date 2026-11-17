@@ -32,6 +32,7 @@ module DesignConfig {
                 id.equals("avgSpeed") ||
                 id.equals("distance") ||
                 id.equals("elapsed") ||
+                id.equals("clock") ||
                 id.equals("grade") ||
                 id.equals("ascent") ||
                 id.equals("heading") ||

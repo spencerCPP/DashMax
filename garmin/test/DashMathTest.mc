@@ -46,5 +46,14 @@ function testLongRideFormatting(logger) {
     Test.assertEqual(DashMath.distance(999.9, false), "999.9");
     Test.assertEqual(DashMath.distance(1000.0, false), "1000");
     Test.assertEqual(DashMath.distance(1609.344, true), "1000");
+    Test.assertEqual(DashMath.clock(14, 5, true)[0], "14:05");
+    Test.assertEqual(DashMath.clock(14, 5, true)[1], "");
+    Test.assertEqual(DashMath.clock(14, 5, false)[0], "2:05");
+    Test.assertEqual(DashMath.clock(14, 5, false)[1], "PM");
+    Test.assertEqual(DashMath.clock(0, 0, false)[0], "12:00");
+    Test.assertEqual(DashMath.clock(0, 0, false)[1], "AM");
+    Test.assertEqual(DashMath.clock(12, 30, false)[0], "12:30");
+    Test.assertEqual(DashMath.clock(12, 30, false)[1], "PM");
+    Test.assertEqual(DashMath.clock(0, 7, true)[0], "0:07");
     return true;
 }

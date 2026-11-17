@@ -67,6 +67,9 @@ function testRemoteDesignValidation(logger) {
 (:test)
 function testDesignRowRules(logger) {
     Test.assert(DesignConfig.rowsProblem([designRow(2, ["power"])]) == null);
+    Test.assert(
+        DesignConfig.rowsProblem([designRow(1, ["clock", "elapsed"])]) == null
+    );
     Test.assert(DesignConfig.rowsProblem(null) != null);
     Test.assert(DesignConfig.rowsProblem([]) != null);
     Test.assert(DesignConfig.rowsProblem([designRow(4, ["power"])]) != null);

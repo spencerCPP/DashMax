@@ -538,6 +538,16 @@ class DashMaxField extends WatchUi.DataField {
                 null,
             ];
         }
+        if (id.equals("clock")) {
+            // Follows the device's 12/24-hour setting.
+            var now = System.getClockTime();
+            var time = DashMath.clock(
+                now.hour,
+                now.min,
+                System.getDeviceSettings().is24Hour
+            );
+            return ["TIME OF DAY", "TIME", time[1], time[0], null, null];
+        }
         if (id.equals("grade")) {
             var slope = activity ? _ride.grade : stopped ? null : 3.2;
             return ["GRADE", "GRADE", "%", DashMath.grade(slope), null, null];
