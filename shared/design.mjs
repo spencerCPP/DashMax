@@ -91,6 +91,8 @@ const zoned = metric => ({ metric, zone: true });
 export const PRESETS = [
   { id: 'balanced', name: 'Balanced', rows: [row(3, zoned('power')), row(1, 'graph'), row(2, zoned('heartRate'), 'cadence'), row(2, 'speed', 'distance')] },
   { id: 'climbing', name: 'Climbing', rows: [row(3, zoned('power')), row(2, 'grade', 'ascent'), row(2, zoned('heartRate'), 'cadence'), row(1, 'speed', 'distance')] },
+  // One large field, one full-width field, then pairs getting denser below.
+  { id: 'wahoo', name: 'Wahoo style', rows: [row(2, zoned('power')), row(1, 'speed'), row(1, zoned('heartRate'), 'cadence'), row(1, 'distance', 'elapsed'), row(1, 'avgPower', 'avgSpeed'), row(1, 'grade', 'ascent')] },
   { id: 'three', name: 'Three rows', rows: [row(2, 'power'), row(2, 'heartRate'), row(2, 'speed')] },
   { id: 'big-two', name: 'Big two', rows: [row(3, zoned('power')), row(3, zoned('heartRate'))] },
   { id: 'dense', name: 'Data dense', rows: [row(1, 'power', 'heartRate'), row(1, 'cadence', 'speed'), row(1, 'distance', 'elapsed'), row(1, 'grade', 'ascent'), row(1, 'avgPower', 'heading')] },

@@ -163,8 +163,8 @@ background colour. It has been replaced by the row builder below.
 
 The web designer lets a user:
 
-1. Start from a preset: Balanced, Climbing, Three rows, Big two,
-   or Data dense.
+1. Start from a preset: Balanced, Climbing, Wahoo style, Three
+   rows, Big two, or Data dense.
 2. Stack one to six rows, each small, medium or large.
 3. Put one or two metrics in each row.
 4. Turn on zone colouring for power and heart-rate cells.
